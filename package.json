@@ -1,0 +1,67 @@
+{
+  "name": "petstore-typescript-mcp-ws",
+  "version": "1.0.0",
+  "description": "Professional TypeScript Node.js Microservice with WebSockets using MCP pattern",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "node dist/index.js",
+    "dev": "nodemon",
+    "build": "tsc",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "generate:api": "openapi-generator-cli generate -i https://petstore.swagger.io/v2/swagger.json -g typescript-node -o src/generated",
+    "prepare": "husky install"
+  },
+  "keywords": [
+    "microservice",
+    "typescript",
+    "websocket",
+    "mcp",
+    "petstore",
+    "oauth"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@fastify/cors": "^8.3.0",
+    "@fastify/jwt": "^7.2.0",
+    "@fastify/rate-limit": "^8.0.3",
+    "@fastify/swagger": "^8.8.0",
+    "@fastify/websocket": "^8.2.0",
+    "dotenv": "^16.3.1",
+    "fastify": "^4.21.0",
+    "jsonwebtoken": "^9.0.1",
+    "socket.io": "^4.7.2",
+    "zod": "^3.22.2"
+  },
+  "devDependencies": {
+    "@openapitools/openapi-generator-cli": "^2.7.0",
+    "@types/jest": "^29.5.3",
+    "@types/node": "^20.5.1",
+    "@types/socket.io-client": "^1.4.36",
+    "@typescript-eslint/eslint-plugin": "^6.4.1",
+    "@typescript-eslint/parser": "^6.4.1",
+    "eslint": "^8.47.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-prettier": "^5.0.0",
+    "husky": "^8.0.3",
+    "jest": "^29.6.3",
+    "lint-staged": "^14.0.1",
+    "nodemon": "^3.0.1",
+    "prettier": "^3.0.2",
+    "socket.io-client": "^4.8.1",
+    "ts-jest": "^29.1.1",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.1.6"
+  },
+  "lint-staged": {
+    "*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ]
+  }
+}
