@@ -1,6 +1,4 @@
 import { WebSocket } from 'ws';
-import { Redis } from 'ioredis';
-import { EventEmitter } from 'events';
 
 // Extend global for custom test utilities
 declare global {
@@ -9,37 +7,49 @@ declare global {
   var wait: (ms: number) => Promise<void>;
 }
 
-// Mock WebSocket
-jest.mock('ws', () => {
-  return {
-    WebSocket: jest.fn().mockImplementation(() => {
-      return {
-        on: jest.fn(),
-        once: jest.fn(),
-        send: jest.fn(),
-        close: jest.fn(),
-        ping: jest.fn(),
-        readyState: WebSocket.OPEN,
-      };
-    }),
-    OPEN: 1,
-    CLOSED: 3,
-  };
-});
-
-// Mock Redis
-jest.mock('ioredis', () => {
-  return jest.fn().mockImplementation(() => {
-    const redis = new EventEmitter() as EventEmitter & Partial<Redis>;
-    redis.connect = jest.fn().mockResolvedValue(undefined);
-    redis.disconnect = jest.fn().mockResolvedValue(undefined);
-    redis.quit = jest.fn().mockResolvedValue('OK');
-    redis.publish = jest.fn().mockResolvedValue(1);
-    redis.subscribe = jest.fn().mockResolvedValue(undefined);
-    redis.duplicate = jest.fn().mockReturnValue(redis);
-    return redis;
+// Only run jest.mock if jest is defined (workaround for ESM/ts-jest setup issues)
+if (typeof jest !== 'undefined') {
+  // Mock WebSocket
+  jest.mock('ws', () => {
+    return {
+      WebSocket: jest.fn().mockImplementation(() => {
+        return {
+          on: jest.fn(),
+          once: jest.fn(),
+          send: jest.fn(),
+          close: jest.fn(),
+          ping: jest.fn(),
+          readyState: 1, // WebSocket.OPEN
+        };
+      }),
+      OPEN: 1,
+      CLOSED: 3,
+    };
   });
-});
+
+  // Mock Redis
+  jest.mock('ioredis', () => {
+    const EventEmitter = require('events');
+    const redis = Object.assign(new EventEmitter(), {
+      connect: jest.fn().mockResolvedValue(undefined),
+      disconnect: jest.fn().mockResolvedValue(undefined),
+      quit: jest.fn().mockResolvedValue('OK'),
+      publish: jest.fn().mockResolvedValue(1),
+      subscribe: jest.fn().mockResolvedValue(undefined),
+      duplicate: jest.fn().mockReturnValue(this),
+    });
+    return jest.fn().mockImplementation(() => redis);
+  });
+
+  // Increase Jest timeout for all tests
+  jest.setTimeout(10000);
+
+  // Clean up timers after each test
+  afterEach(() => {
+    jest.clearAllTimers();
+    jest.useRealTimers();
+  });
+}
 
 // Add custom matchers
 expect.extend({
@@ -85,12 +95,3 @@ global.createMockRequest = (overrides = {}) => {
 };
 
 global.wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-// Increase Jest timeout for all tests
-jest.setTimeout(10000);
-
-// Clean up timers after each test
-afterEach(() => {
-  jest.clearAllTimers();
-  jest.useRealTimers();
-}); 

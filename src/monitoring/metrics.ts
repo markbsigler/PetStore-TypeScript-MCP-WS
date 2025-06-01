@@ -147,9 +147,20 @@ export function updateSystemMetrics(): void {
 }
 
 // Start periodic system metrics collection
-setInterval(updateSystemMetrics, 10000); // Every 10 seconds
+let systemMetricsInterval: NodeJS.Timeout | undefined;
+if (typeof global !== 'undefined' && (process.env.NODE_ENV !== 'test')) {
+  systemMetricsInterval = setInterval(updateSystemMetrics, 10000); // Every 10 seconds
+}
+
+// Helper for test cleanup
+export function clearSystemMetricsInterval() {
+  if (systemMetricsInterval) {
+    clearInterval(systemMetricsInterval);
+    systemMetricsInterval = undefined;
+  }
+}
 
 // Export metrics in Prometheus format
 export async function getMetrics(): Promise<string> {
   return registry.metrics();
-} 
+}
