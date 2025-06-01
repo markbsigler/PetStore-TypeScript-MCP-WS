@@ -1,0 +1,7 @@
+dist/
+node_modules/
+coverage/
+src/generated/
+*.js
+*.d.ts
+jest.config.ts

@@ -84,7 +84,10 @@ export abstract class BaseProtocol<T> extends EventEmitter {
   }
 
   // List operation
-  public async list(filter: Record<string, unknown>, context: Context): Promise<ModelResponse<T[]>> {
+  public async list(
+    filter: Record<string, unknown>,
+    context: Context,
+  ): Promise<ModelResponse<T[]>> {
     try {
       await this.validateContext(context, 'list');
       const result = await this.handleList(filter, context);
@@ -107,7 +110,7 @@ export abstract class BaseProtocol<T> extends EventEmitter {
   // Context validation method
   protected async validateContext(
     context: Context,
-    operation: ModelOperation<T>['type'],
+    _operation: ModelOperation<T>['type'],
   ): Promise<void> {
     if (!context.userId) {
       throw new Error('User not authenticated');
@@ -116,4 +119,8 @@ export abstract class BaseProtocol<T> extends EventEmitter {
     // Implement additional context validation logic here
     // For example, checking roles, permissions, etc.
   }
-} 
+
+  async validateRequest(_operation: string): Promise<void> {
+    // ... existing code ...
+  }
+}

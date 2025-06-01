@@ -1,0 +1,33 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'websocket_api'
+    static_configs:
+      - targets: ['api1:3000', 'api2:3001']
+    metrics_path: '/metrics'
+    scheme: 'http'
+
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['load-balancer:80']
+    metrics_path: '/metrics'
+    scheme: 'http'
+
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+    metrics_path: '/metrics'
+    scheme: 'http'
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # AlertManager configuration can be added here
+
+rule_files:
+  # Alert rules can be added here
+  # - "first_rules.yml"
+  # - "second_rules.yml" 

@@ -1,0 +1,10 @@
+#!/usr/bin/env sh
+
+# Run linting
+npm run lint
+
+# Run type checking
+npm run build --noEmit
+
+# Run tests
+npm test -- --bail --findRelatedTests $STAGED_FILES

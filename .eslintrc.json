@@ -17,9 +17,24 @@
   },
   "plugins": ["@typescript-eslint", "prettier"],
   "rules": {
-    "@typescript-eslint/explicit-function-return-type": "warn",
+    "@typescript-eslint/explicit-function-return-type": "off",
     "@typescript-eslint/no-explicit-any": "warn",
     "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
-    "prettier/prettier": "error"
-  }
-} 
+    "@typescript-eslint/no-non-null-assertion": "warn",
+    "@typescript-eslint/no-empty-interface": "warn",
+    "@typescript-eslint/ban-ts-comment": "warn",
+    "prettier/prettier": "error",
+    "no-console": "warn",
+    "no-debugger": "error",
+    "no-duplicate-imports": "error",
+    "no-unused-expressions": "error",
+    "no-var": "error",
+    "prefer-const": "error"
+  },
+  "settings": {
+    "import/resolver": {
+      "typescript": {}
+    }
+  },
+  "ignorePatterns": ["dist/", "dist", "node_modules", "coverage", "*.js", "src/generated/"]
+}

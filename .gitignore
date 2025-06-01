@@ -7,32 +7,42 @@ yarn-error.log*
 # Build output
 dist/
 build/
-
-# Test coverage
-coverage/
-.nyc_output/
+*.tsbuildinfo
 
 # Environment variables
 .env
 .env.local
 .env.*.local
 
-# IDE
+# IDE and editor files
 .idea/
 .vscode/
 *.swp
 *.swo
-
-# OS
 .DS_Store
-Thumbs.db
+
+# Test coverage
+coverage/
+
+# Documentation
+docs/
 
 # Logs
 logs/
 *.log
 
-# Generated API code
-src/generated/
+# Docker
+.docker/
+docker-compose.override.yml
 
-# TypeScript
-*.tsbuildinfo 
+# Temporary files
+tmp/
+temp/
+.tmp/
+
+# Debug files
+.debug/
+debug.log
+
+# Generated API code
+src/generated/ 

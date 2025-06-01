@@ -1,6 +1,6 @@
 import { describe, expect, test } from '@jest/globals';
-import { PetProtocol, PetStatus } from '../../protocols/pet';
-import { Context } from '../../protocols/base';
+import { PetProtocol, PetStatus } from '../../protocols/pet.ts';
+import { Context } from '../../protocols/base.ts';
 
 describe('PetProtocol', () => {
   let petProtocol: PetProtocol;
@@ -147,4 +147,4 @@ describe('PetProtocol', () => {
     expect(result.success).toBe(true);
     expect(result.data?.photoUrls).toContain(newImageUrl);
   });
-}); 
+});

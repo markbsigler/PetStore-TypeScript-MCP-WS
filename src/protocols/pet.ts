@@ -1,4 +1,4 @@
-import { BaseProtocol, Context, ModelResponse } from './base';
+import { BaseProtocol, Context, ModelResponse } from './base.ts';
 import { z } from 'zod';
 
 // Pet status enum
@@ -34,7 +34,7 @@ export class PetProtocol extends BaseProtocol<Pet> {
   // In-memory storage for demonstration
   private pets: Map<string, Pet> = new Map();
 
-  protected async handleCreate(data: Pet, context: Context): Promise<Pet> {
+  protected async handleCreate(data: Pet, _context: Context): Promise<Pet> {
     // Validate data using Zod schema
     const validatedData = PetSchema.parse(data);
 
@@ -48,7 +48,7 @@ export class PetProtocol extends BaseProtocol<Pet> {
     return pet;
   }
 
-  protected async handleRead(id: string, context: Context): Promise<Pet> {
+  protected async handleRead(id: string, _context: Context): Promise<Pet> {
     const pet = this.pets.get(id);
     if (!pet) {
       throw new Error('Pet not found');
@@ -56,9 +56,9 @@ export class PetProtocol extends BaseProtocol<Pet> {
     return pet;
   }
 
-  protected async handleUpdate(id: string, data: Partial<Pet>, context: Context): Promise<Pet> {
-    const existingPet = await this.handleRead(id, context);
-    
+  protected async handleUpdate(id: string, data: Partial<Pet>, _context: Context): Promise<Pet> {
+    const existingPet = await this.handleRead(id, _context);
+
     // Validate updated data
     const updatedPet = PetSchema.parse({
       ...existingPet,
@@ -71,7 +71,7 @@ export class PetProtocol extends BaseProtocol<Pet> {
     return updatedPet;
   }
 
-  protected async handleDelete(id: string, context: Context): Promise<void> {
+  protected async handleDelete(id: string, _context: Context): Promise<void> {
     const exists = this.pets.has(id);
     if (!exists) {
       throw new Error('Pet not found');
@@ -79,7 +79,7 @@ export class PetProtocol extends BaseProtocol<Pet> {
     this.pets.delete(id);
   }
 
-  protected async handleList(filter: Record<string, unknown>, context: Context): Promise<Pet[]> {
+  protected async handleList(filter: Record<string, unknown>, _context: Context): Promise<Pet[]> {
     const pets = Array.from(this.pets.values());
 
     // Apply filters if provided
@@ -120,4 +120,20 @@ export class PetProtocol extends BaseProtocol<Pet> {
       };
     }
   }
-} 
+
+  async validateRequest(_operation: string): Promise<void> {
+    // Implementation of validateRequest method
+  }
+
+  async validateResponse(_context: Context): Promise<void> {
+    // Implementation of validateResponse method
+  }
+
+  async validateError(_context: Context): Promise<void> {
+    // Implementation of validateError method
+  }
+
+  async validateWebSocket(_context: Context): Promise<void> {
+    // Implementation of validateWebSocket method
+  }
+}

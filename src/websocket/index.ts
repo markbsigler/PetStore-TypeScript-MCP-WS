@@ -1,27 +1,14 @@
 import { Server, Socket } from 'socket.io';
-import config from '../config';
-
-// WebSocket event types
-export enum WebSocketEvents {
-  PET_CREATED = 'pet:created',
-  PET_UPDATED = 'pet:updated',
-  PET_DELETED = 'pet:deleted',
-  ORDER_CREATED = 'order:created',
-  ORDER_UPDATED = 'order:updated',
-  ORDER_CANCELLED = 'order:cancelled',
-  INVENTORY_UPDATED = 'inventory:updated',
-}
-
-// WebSocket room types
-export enum WebSocketRooms {
-  PETS = 'pets',
-  ORDERS = 'orders',
-  INVENTORY = 'inventory',
-  USERS = 'users',
-}
+import { config } from '../config/index.js';
+import { WebSocketEvents, WebSocketRooms } from '../types/index.js';
+import { wsLogger } from '../utils/logger.js';
 
 // Socket middleware for authentication
 const authenticateSocket = (socket: Socket, next: (err?: Error) => void): void => {
+  if (config.isDevelopment) {
+    return next();
+  }
+
   const token = socket.handshake.auth.token;
   if (!token) {
     return next(new Error('Authentication error'));
@@ -31,29 +18,37 @@ const authenticateSocket = (socket: Socket, next: (err?: Error) => void): void =
     // Verify token here using your JWT implementation
     // socket.data.user = verifiedUser;
     next();
-  } catch (err) {
+  } catch (error) {
+    wsLogger.error('Authentication error:', error);
     next(new Error('Authentication error'));
   }
 };
 
 // Handle client connection
 const handleConnection = (socket: Socket): void => {
-  socket.on('disconnect', () => {
-    console.log('Client disconnected:', socket.id);
-  });
+  console.log('Client connected:', socket.id);
 
-  // Join rooms based on user permissions
+  // Join all rooms by default (in a production environment, you'd want to restrict this based on user permissions)
   Object.values(WebSocketRooms).forEach(room => {
     socket.join(room);
+  });
+
+  // Handle disconnection
+  socket.on('disconnect', () => {
+    console.log('Client disconnected:', socket.id);
   });
 
   // Set up heartbeat
   const heartbeat = setInterval(() => {
     socket.emit('ping');
-  }, config.websocket.heartbeatInterval);
+  }, 30000); // 30 seconds
 
   socket.on('disconnect', () => {
     clearInterval(heartbeat);
+  });
+
+  socket.on('error', (_err: Error) => {
+    // Handle error
   });
 };
 
@@ -65,8 +60,8 @@ export const setupWebSocketHandlers = (io: Server): void => {
   // Handle connections
   io.on('connection', handleConnection);
 
-  // Broadcast methods for different events
-  const broadcast = {
+  // Set up event emitters on the io instance
+  io.emit = Object.assign(io.emit, {
     petCreated: (petId: string, data: unknown) => {
       io.to(WebSocketRooms.PETS).emit(WebSocketEvents.PET_CREATED, { petId, data });
     },
@@ -88,7 +83,5 @@ export const setupWebSocketHandlers = (io: Server): void => {
     inventoryUpdated: (data: unknown) => {
       io.to(WebSocketRooms.INVENTORY).emit(WebSocketEvents.INVENTORY_UPDATED, data);
     },
-  };
-
-  return broadcast;
-}; 
+  });
+};

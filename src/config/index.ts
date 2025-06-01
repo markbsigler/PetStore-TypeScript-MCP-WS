@@ -1,82 +1,100 @@
-import { z } from 'zod';
 import dotenv from 'dotenv';
+import { z } from 'zod';
 
-// Load environment variables
 dotenv.config();
 
-// Environment variable schema
 const envSchema = z.object({
-  // Server
-  PORT: z.string().default('3000'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-
-  // JWT
-  JWT_SECRET: z.string().min(32),
-  JWT_EXPIRATION: z.string().default('1h'),
-
-  // OAuth
-  OAUTH_CLIENT_ID: z.string(),
-  OAUTH_CLIENT_SECRET: z.string(),
-  OAUTH_CALLBACK_URL: z.string().url(),
-
-  // Rate Limiting
-  RATE_LIMIT_WINDOW: z.string().default('15'),
+  PORT: z.string().default('3000'),
+  HOST: z.string().default('0.0.0.0'),
+  JWT_SECRET: z.string().default('your-secret-key'),
+  CORS_ORIGIN: z.string().default('*'),
   RATE_LIMIT_MAX: z.string().default('100'),
-
-  // WebSocket
-  WS_HEARTBEAT_INTERVAL: z.string().default('30000'),
-  WS_PATH: z.string().default('/ws'),
-
-  // Logging
-  LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
-
-  // CORS
-  CORS_ORIGIN: z.string().default('http://localhost:3000'),
-  CORS_METHODS: z.string().default('GET,POST,PUT,DELETE,PATCH'),
-
-  // API Documentation
-  SWAGGER_PATH: z.string().default('/api-docs'),
+  RATE_LIMIT_WINDOW: z.string().default('15'),
+  LOG_LEVEL: z.string().default('info'),
+  LOG_REDACTION_PATHS: z.string().default('password,token'),
+  LOG_REDACTION_REMOVE: z.boolean().default(true),
+  WEBSOCKET_PATH: z.string().default('/ws'),
+  WEBSOCKET_PING_TIMEOUT: z.number().default(5000),
+  WEBSOCKET_PING_INTERVAL: z.number().default(25000),
+  WEBSOCKET_TRANSPORTS: z.string().default('websocket,polling'),
 });
 
-// Parse and validate environment variables
 const env = envSchema.parse(process.env);
 
-// Configuration object
+export interface Config {
+  isDevelopment: boolean;
+  env: string;
+  server: {
+    port: number;
+    host: string;
+  };
+  cors: {
+    origin: string[];
+    methods: string[];
+  };
+  jwt: {
+    secret: string;
+  };
+  rateLimit: {
+    max: number;
+    window: number;
+  };
+  logger: {
+    level: string;
+    redaction: {
+      paths: string[];
+      remove: boolean;
+    };
+  };
+  websocket: {
+    path: string;
+    pingTimeout: number;
+    pingInterval: number;
+    transports: string[];
+    cors: {
+      origin: string[];
+      methods: string[];
+    };
+  };
+}
+
 const config = {
+  isDevelopment: env.NODE_ENV === 'development',
+  env: env.NODE_ENV,
   server: {
     port: parseInt(env.PORT, 10),
-    nodeEnv: env.NODE_ENV,
+    host: env.HOST,
+  },
+  cors: {
+    origin: env.CORS_ORIGIN.split(','),
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   },
   jwt: {
     secret: env.JWT_SECRET,
-    expiration: env.JWT_EXPIRATION,
-  },
-  oauth: {
-    clientId: env.OAUTH_CLIENT_ID,
-    clientSecret: env.OAUTH_CLIENT_SECRET,
-    callbackUrl: env.OAUTH_CALLBACK_URL,
   },
   rateLimit: {
-    window: parseInt(env.RATE_LIMIT_WINDOW, 10),
     max: parseInt(env.RATE_LIMIT_MAX, 10),
+    timeWindow: `${env.RATE_LIMIT_WINDOW} minutes`,
+  },
+  logger: {
+    level: env.LOG_LEVEL,
+    redaction: {
+      paths: env.LOG_REDACTION_PATHS.split(','),
+      remove: env.LOG_REDACTION_REMOVE,
+    },
   },
   websocket: {
-    heartbeatInterval: parseInt(env.WS_HEARTBEAT_INTERVAL, 10),
-    path: env.WS_PATH,
+    path: env.WEBSOCKET_PATH,
+    pingTimeout: env.WEBSOCKET_PING_TIMEOUT,
+    pingInterval: env.WEBSOCKET_PING_INTERVAL,
+    transports: env.WEBSOCKET_TRANSPORTS.split(','),
+    cors: {
+      origin: env.CORS_ORIGIN.split(','),
+      methods: ['GET', 'POST'],
+    },
   },
-  logging: {
-    level: env.LOG_LEVEL,
-  },
-  cors: {
-    origin: env.CORS_ORIGIN,
-    methods: env.CORS_METHODS.split(','),
-  },
-  swagger: {
-    path: env.SWAGGER_PATH,
-  },
-  isDevelopment: env.NODE_ENV === 'development',
-  isProduction: env.NODE_ENV === 'production',
-  isTest: env.NODE_ENV === 'test',
-} as const;
+};
 
-export default config; 
+export { config };
+export default config;
