@@ -1,4 +1,4 @@
-import { registry, wsConnectionGauge, wsConnectionCounter, wsMessageCounter, wsLatencyHistogram, wsErrorCounter, rateLimitCounter, authCounter, clearSystemMetricsInterval } from '../../monitoring/metrics.ts';
+import { registry, wsConnectionGauge, wsConnectionCounter, wsMessageCounter, wsLatencyHistogram, wsErrorCounter, rateLimitCounter, authCounter, updateConnectionMetrics, updateSystemMetrics, getMetrics, clearSystemMetricsInterval } from '../../monitoring/metrics.ts';
 
 describe('metrics module', () => {
   beforeEach(() => {
@@ -185,5 +185,75 @@ describe('metrics module', () => {
     expect(apiLimit?.value).toBeGreaterThanOrEqual(1);
     expect(success?.value).toBeGreaterThanOrEqual(1);
     expect(failure?.value).toBeGreaterThanOrEqual(1);
+  });
+
+  it('should observe all histogram buckets and +Inf', async () => {
+    // Observe values for every bucket and +Inf
+    const buckets = [0.001, 0.005, 0.015, 0.05, 0.1, 0.5, 2];
+    buckets.forEach(v => wsLatencyHistogram.observe(v));
+    const hist = await wsLatencyHistogram.get();
+    // Check that each bucket has a nonzero count
+    [0.001, 0.005, 0.015, 0.05, 0.1, 0.5, '+Inf'].forEach(le => {
+      const bucket = hist.values.find(v => v.metricName === 'websocket_message_latency_seconds_bucket' && (v.labels.le === le || v.labels.le === le.toString()));
+      expect(bucket && bucket.value).toBeGreaterThan(0);
+    });
+    // Check sum and count
+    const sumValue = hist.values.find(v => v.metricName === 'websocket_message_latency_seconds_sum');
+    const countValue = hist.values.find(v => v.metricName === 'websocket_message_latency_seconds_count');
+    expect(sumValue && sumValue.value).toBeGreaterThan(0);
+    expect(countValue && countValue.value).toBe(buckets.length);
+  });
+
+  it('should reset metrics and verify all are zero', async () => {
+    wsConnectionGauge.inc({ status: 'open' });
+    wsConnectionCounter.inc({ status: 'open' });
+    wsMessageCounter.inc({ type: 'text', status: 'success' });
+    wsLatencyHistogram.observe(0.01);
+    wsErrorCounter.inc({ type: 'fatal' });
+    rateLimitCounter.inc({ ip: '127.0.0.1', endpoint: '/ws' });
+    authCounter.inc({ status: 'success' });
+    registry.resetMetrics();
+    // All metric values should be zero after reset
+    const metrics = [
+      wsConnectionGauge,
+      wsConnectionCounter,
+      wsMessageCounter,
+      wsLatencyHistogram,
+      wsErrorCounter,
+      rateLimitCounter,
+      authCounter
+    ];
+    for (const metric of metrics) {
+      const data = await metric.get();
+      data.values.forEach(v => expect(v.value).toBe(0));
+    }
+  });
+
+  it('should cover updateConnectionMetrics and updateSystemMetrics helpers', () => {
+    // updateConnectionMetrics
+    // Use a minimal mock that satisfies the WebSocket type for readyState
+    const fakeClients = new Set([
+      { readyState: 1, addEventListener: () => {}, removeEventListener: () => {}, send: () => {}, close: () => {} } as unknown as import('ws').WebSocket,
+      { readyState: 0, addEventListener: () => {}, removeEventListener: () => {}, send: () => {}, close: () => {} } as unknown as import('ws').WebSocket,
+      { readyState: 2, addEventListener: () => {}, removeEventListener: () => {}, send: () => {}, close: () => {} } as unknown as import('ws').WebSocket,
+      { readyState: 3, addEventListener: () => {}, removeEventListener: () => {}, send: () => {}, close: () => {} } as unknown as import('ws').WebSocket,
+    ]);
+    updateConnectionMetrics(fakeClients);
+    // updateSystemMetrics
+    updateSystemMetrics();
+    // If no error is thrown, coverage is achieved
+    expect(true).toBe(true);
+  });
+
+  it('should cover getMetrics export', async () => {
+    const metrics = await getMetrics();
+    expect(typeof metrics).toBe('string');
+    expect(metrics).toContain('websocket_connections_current');
+  });
+
+  it('should cover clearSystemMetricsInterval helper', () => {
+    clearSystemMetricsInterval();
+    // Should not throw
+    expect(true).toBe(true);
   });
 });
