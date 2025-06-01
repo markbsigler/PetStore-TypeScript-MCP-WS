@@ -1,6 +1,18 @@
 # WebSocket-based Pet Store API
 
-A robust WebSocket-based API implementation for a pet store, built with TypeScript and modern best practices.
+A robust WebSocket-based API implementation for a pet store, built with TypeScript, ESM, and modern best practices.
+
+---
+
+**2025 Update: ESM & TypeScript Compatibility**
+
+- This project is fully ESM-native and uses TypeScript with `module: nodenext`.
+- All import paths use explicit `.ts` extensions in source and test files for compatibility with Node.js ESM loader and ts-node/jest.
+- Dynamic imports (e.g., plugins) must use `.ts` extensions in source and test mode.
+- Node.js >= 18 is required for ESM and fetch API support.
+- TypeScript 5.1.x is recommended for best compatibility with ESLint tooling.
+
+---
 
 ## Features
 
@@ -61,8 +73,9 @@ A robust WebSocket-based API implementation for a pet store, built with TypeScri
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/petstore-typescript-mcp-ws.git
-cd petstore-typescript-mcp-ws
+# Use your fork or the main repo
+ git clone https://github.com/yourusername/petstore-typescript-mcp-ws.git
+ cd petstore-typescript-mcp-ws
 ```
 
 2. Install dependencies:
@@ -80,6 +93,8 @@ cp .env.example .env
 npm run build
 ```
 
+> **Note:** If you encounter TypeScript/ESLint warnings about version compatibility, use TypeScript 5.1.x for best results.
+
 ## Development
 
 Start the development server with hot reloading:
@@ -87,7 +102,7 @@ Start the development server with hot reloading:
 npm run dev
 ```
 
-Run tests:
+Run all tests:
 ```bash
 npm test
 ```
@@ -102,13 +117,13 @@ Format code:
 npm run format
 ```
 
-<<<<<<< Updated upstream
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
-=======
+Build the project:
+```bash
+npm run build
+```
+
+> **Tip:** All npm scripts are ESM/TypeScript compatible. Use `.ts` extensions in imports for all source and test files.
+
 ## Docker Deployment
 
 Build and start the containers:
@@ -129,6 +144,19 @@ The application exposes metrics at `/metrics` for Prometheus to scrape. Grafana 
 Default Grafana credentials:
 - Username: admin
 - Password: admin
+
+## Monitoring & Metrics
+
+- The `/metrics` endpoint exposes Prometheus-compatible metrics, including Node.js process, WebSocket, and API health metrics.
+- Integration tests verify the `/metrics` endpoint and ensure all custom and default metrics are present.
+- See `grafana/dashboards/` for example dashboards.
+
+## Testing & Reliability
+
+- All integration and unit tests are run with Jest and ts-jest in ESM mode.
+- Tests import source files using `.ts` extensions and expect ESM compatibility.
+- The test suite covers health checks, metrics, WebSocket protocols, and circuit breaker logic.
+- If you see coverage warnings, check the Jest output for details. All tests must pass for CI.
 
 ## Architecture
 
@@ -320,7 +348,7 @@ Example error response:
 
 ### WebSocket Events
 
-- `
+-
 
 ## Security
 
@@ -514,4 +542,3 @@ interface HealthCheck {
   }
 }
 ```
->>>>>>> Stashed changes
