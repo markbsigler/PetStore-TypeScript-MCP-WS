@@ -53,6 +53,11 @@ jobs:
       env:
         REDIS_URL: redis://localhost:6379
 
+    - name: Automated Endpoint Health Checks
+      run: |
+        chmod +x health-and-endpoints-check.sh
+        ./health-and-endpoints-check.sh
+
   build:
     needs: test
     runs-on: ubuntu-latest

@@ -601,3 +601,27 @@ A script is provided to automatically validate all Mermaid diagrams in the READM
 ```
 
 > **Tip:** For multi-file validation, use a glob or loop over all markdown files.
+
+## Automated Endpoint Health Checks
+
+A script is provided to automatically build, start, and check the health and key endpoints of the server. This ensures that `/health`, `/metrics`, `/`, and `/pets` endpoints are always tested for availability and correctness.
+
+### How to Run Endpoint Health Checks
+
+1. **Run the script:**
+   ```bash
+   ./health-and-endpoints-check.sh
+   ```
+   - This will build the project, start the server in the background, check all key endpoints, print their responses, and then stop the server.
+
+2. **CI Integration:**
+   - Add the following step to your GitHub Actions workflow after the build step:
+
+```yaml
+- name: Automated Endpoint Health Checks
+  run: |
+    chmod +x health-and-endpoints-check.sh
+    ./health-and-endpoints-check.sh
+```
+
+> **Tip:** You can add or modify endpoints to check by editing the `health-and-endpoints-check.sh` script.
