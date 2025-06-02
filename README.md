@@ -148,8 +148,37 @@ Default Grafana credentials:
 ## Monitoring & Metrics
 
 - The `/metrics` endpoint exposes Prometheus-compatible metrics, including Node.js process, WebSocket, and API health metrics.
-- Integration tests verify the `/metrics` endpoint and ensure all custom and default metrics are present.
-- See `grafana/dashboards/` for example dashboards.
+- **Custom metrics include:**
+  - WebSocket connections (current/total, by status)
+  - WebSocket messages (by type/status), errors, and latency histograms
+  - Rate limiting and authentication attempts (with labels)
+  - Circuit breaker state, load balancer nodes/latency, queue size/processing time
+  - System metrics: CPU load (1m/5m/15m), memory usage (heap, RSS, external)
+- **Extending metrics:**
+  1. Define new metrics in `src/monitoring/metrics.ts` and register with the shared registry.
+  2. Add/extend tests in `src/__tests__/monitoring/metrics.test.ts` to cover all label combinations, buckets, and error/edge cases.
+  3. Ensure helper functions and error handling are tested (see file-level doc comment in `metrics.test.ts`).
+- **Testing:**
+  - All metrics logic is covered by robust unit tests, including error/edge cases and resource cleanup.
+  - To run metrics tests: `npm test -- src/__tests__/monitoring/metrics.test.ts --coverage`
+- **Production monitoring:**
+  - Prometheus scrapes `/metrics` for dashboards and alerting (see `grafana/dashboards/` for examples).
+  - System metric collection is resilient to restricted environments (errors are caught and ignored).
+
+### Metrics Flow Diagram
+
+```mermaid
+graph TD
+    A[WebSocket Events / System Events] --> B[Metrics Helpers\n(updateConnectionMetrics, updateSystemMetrics, etc.)]
+    B --> C[Prometheus Metrics Registry]
+    C --> D[/metrics Endpoint]
+    D --> E[Prometheus Server]
+    E --> F[Grafana Dashboards]
+    C -->|Test/Mock| G[Unit/Integration Tests]
+    B -->|Error Handling| H[Error Logging]
+```
+
+This diagram shows how metrics are updated in response to WebSocket and system events, registered with the Prometheus registry, and exposed via the `/metrics` endpoint for Prometheus and Grafana. Tests and error handling are integrated into the flow.
 
 ## Testing & Reliability
 
@@ -542,3 +571,33 @@ interface HealthCheck {
   }
 }
 ```
+
+## Diagram Validation
+
+A script is provided to automatically validate all Mermaid diagrams in the README and documentation files. This ensures diagrams are syntactically correct and renderable in CI and documentation tools.
+
+### How to Run Diagram Validation
+
+1. **Install mermaid-cli (mmdc):**
+   ```bash
+   npm install -g @mermaid-js/mermaid-cli
+   ```
+2. **Run the validation script:**
+   ```bash
+   npx mmdc -i README.md -o /tmp/diagram.svg --quiet || (echo "Mermaid diagram validation failed" && exit 1)
+   ```
+   - This will parse all Mermaid code blocks in `README.md` and attempt to render them. If any diagram is invalid, the command will fail.
+   - You can adapt this for other markdown files as needed.
+
+3. **CI Integration:**
+   - Add the above command to your CI pipeline (e.g., GitHub Actions, GitLab CI) to ensure all Mermaid diagrams are always valid.
+
+### Example GitHub Actions Step
+```yaml
+- name: Validate Mermaid diagrams
+  run: |
+    npm install -g @mermaid-js/mermaid-cli
+    npx mmdc -i README.md -o /tmp/diagram.svg --quiet
+```
+
+> **Tip:** For multi-file validation, use a glob or loop over all markdown files.

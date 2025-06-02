@@ -32,6 +32,11 @@ jobs:
     - name: Install dependencies
       run: npm ci
     
+    - name: Validate Mermaid diagrams
+      run: |
+        npm install -g @mermaid-js/mermaid-cli
+        npx mmdc -i README.md -o /tmp/diagram.svg --quiet
+    
     - name: Run linter
       run: npm run lint
     
@@ -89,4 +94,4 @@ jobs:
           cd /opt/petstore
           docker-compose pull
           docker-compose up -d
-          docker system prune -f 
+          docker system prune -f
