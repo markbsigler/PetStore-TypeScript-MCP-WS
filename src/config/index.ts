@@ -72,6 +72,9 @@ const config = {
   },
   jwt: {
     secret: env.JWT_SECRET,
+    sign: {
+      expiresIn: '1h',
+    },
   },
   rateLimit: {
     max: parseInt(env.RATE_LIMIT_MAX, 10),

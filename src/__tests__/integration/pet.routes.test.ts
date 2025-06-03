@@ -1,12 +1,23 @@
-import Fastify, { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { Pet } from '../../models/Pet.js';
-import petRoutes from '../../routes/pet.routes.ts'; // Default export from routes file
+import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import fastify from 'fastify';
+import petRoutes from '../../../src/routes/pet.routes.ts';
+import { v4 as uuidv4 } from 'uuid';
 import multipart from '@fastify/multipart';
-import { v4 as uuidv4 } from 'uuid'; // For generating IDs in tests
+import { Pet } from '../../../src/models/Pet.ts';
 
 // Helper to build the app for testing
 async function buildApp(): Promise<FastifyInstance> {
-  const app = Fastify();
+  const app: FastifyInstance = fastify({
+    logger: false // Disable logging for tests
+  });
+  
+  // Mock WebSocket server
+  const mockIo = {
+    emit: jest.fn()
+  };
+  
+  // Store the mock WebSocket server in the Fastify instance
+  app.decorate('io', mockIo);
   
   // Register multipart plugin for file uploads
   await app.register(multipart);
@@ -15,7 +26,7 @@ async function buildApp(): Promise<FastifyInstance> {
   app.decorate('authenticate', async (_request: FastifyRequest, _reply: FastifyReply) => {});
 
   // Register actual pet routes from src/routes/pet.routes.ts
-  // This function (petRoutes) internally creates its own PetController instance.
+  // In the test environment, we'll register without a prefix and adjust the test URLs accordingly
   await app.register(petRoutes);
   
   await app.ready();
@@ -25,8 +36,10 @@ async function buildApp(): Promise<FastifyInstance> {
 describe('Pet Routes Integration Tests', () => {
   let app: FastifyInstance;
 
+
   beforeAll(async () => {
     app = await buildApp();
+    // No need to store HTTP server for cleanup with this setup
   });
 
   beforeEach(async () => {
@@ -51,25 +64,28 @@ describe('Pet Routes Integration Tests', () => {
     // in PetController.ts is somehow cleared. In a real scenario, this needs a robust solution.
     // If not cleared, tests will interfere with each other.
     // We can try to delete all pets via API if a DELETE all endpoint existed, or delete one by one.
-    const response = await app.inject({ method: 'GET', url: '/pets?limit=1000' }); // Assuming a GET /pets endpoint exists
+    // Get all pets and delete them
+    const response = await app.inject({ method: 'GET', url: '/api/v1/pets' });
     if (response.statusCode === 200) {
-        const { data: currentPets } = JSON.parse(response.payload);
-        if (Array.isArray(currentPets)) {
-            for (const pet of currentPets) {
-                await app.inject({ method: 'DELETE', url: `/pets/${pet.id}` });
+        const pets = JSON.parse(response.payload);
+        if (Array.isArray(pets)) {
+            for (const pet of pets) {
+                await app.inject({ method: 'DELETE', url: `/api/v1/pets/${pet.id}` });
             }
         }
     }
   });
 
   afterAll(async () => {
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 
-  const samplePetPayload: Omit<Pet, 'id' | 'createdAt' | 'updatedAt'> = {
+  const samplePetPayload = {
     name: 'Integration Test Dog',
     photoUrls: ['http://example.com/it-dog.jpg'],
-    status: 'available',
+    status: 'available' as const,
     category: { id: 1, name: 'Dogs' },
     tags: [{ id: 1, name: 'testing' }],
   };

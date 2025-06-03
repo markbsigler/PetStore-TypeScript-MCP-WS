@@ -23,14 +23,16 @@ async function userRoutes(fastify: FastifyInstance) {
     phone: Type.String(),
     userStatus: Type.Number(),
   });
+  
+  // Schema for creating a user (without requiring id)
+  const CreateUserSchema = Type.Omit(UserSchema, ['id']);
 
-  // POST /user
+  // POST /users - Create a new user
   fastify.post(
-    '/user',
+    '/users',
     {
-      preHandler: [fastify.authenticate],
       schema: {
-        body: UserSchema,
+        body: CreateUserSchema,
         response: {
           200: UserSchema,
           400: Type.Object({
@@ -41,7 +43,7 @@ async function userRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       try {
-        const user = await new UserController().createUser(request.body as User);
+        const user = await new UserController(fastify).createUser(request.body as Omit<User, 'id'>);
         return reply.send(user);
       } catch (err) {
         request.log.error({ err }, 'Handler error');
@@ -50,9 +52,9 @@ async function userRoutes(fastify: FastifyInstance) {
     },
   );
 
-  // POST /user/createWithArray
+  // POST /createWithArray
   fastify.post(
-    '/user/createWithArray',
+    '/createWithArray',
     {
       preHandler: [fastify.authenticate],
       schema: {
@@ -78,9 +80,9 @@ async function userRoutes(fastify: FastifyInstance) {
     },
   );
 
-  // POST /user/createWithList
+  // POST /createWithList
   fastify.post(
-    '/user/createWithList',
+    '/createWithList',
     {
       preHandler: [fastify.authenticate],
       schema: {
@@ -106,9 +108,9 @@ async function userRoutes(fastify: FastifyInstance) {
     },
   );
 
-  // GET /user/{username}
+  // GET /users/:username - Get user by username
   fastify.get(
-    '/user/:username',
+    '/users/:username',
     {
       schema: {
         params: Type.Object({
@@ -128,7 +130,7 @@ async function userRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       try {
         const { username } = request.params as { username: string };
-        const user = await new UserController().getUserByName(username);
+        const user = await new UserController(fastify).getUserByName(username);
         return reply.send(user);
       } catch (err) {
         request.log.error({ err }, 'Handler error');
@@ -137,9 +139,9 @@ async function userRoutes(fastify: FastifyInstance) {
     },
   );
 
-  // PUT /user/{username}
+  // PUT /users/:username - Update user
   fastify.put(
-    '/user/:username',
+    '/users/:username',
     {
       preHandler: [fastify.authenticate],
       schema: {
@@ -161,7 +163,7 @@ async function userRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       try {
         const { username } = request.params as { username: string };
-        const user = await new UserController().updateUser(username, request.body as User);
+        const user = await new UserController(fastify).updateUser(username, request.body as User);
         return reply.send(user);
       } catch (err) {
         request.log.error({ err }, 'Handler error');
@@ -170,9 +172,9 @@ async function userRoutes(fastify: FastifyInstance) {
     },
   );
 
-  // DELETE /user/{username}
+  // DELETE /users/:username - Delete user
   fastify.delete(
-    '/user/:username',
+    '/users/:username',
     {
       preHandler: [fastify.authenticate],
       schema: {
@@ -193,7 +195,7 @@ async function userRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       try {
         const { username } = request.params as { username: string };
-        const success = await new UserController().deleteUser(username);
+        const success = await new UserController(fastify).deleteUser(username);
         if (!success) {
           return reply.status(404).send({ error: 'User not found' });
         }
@@ -205,9 +207,9 @@ async function userRoutes(fastify: FastifyInstance) {
     },
   );
 
-  // GET /user/login
+  // GET /users/login - User login
   fastify.get(
-    '/user/login',
+    '/users/login',
     {
       schema: {
         querystring: Type.Object({
@@ -228,7 +230,7 @@ async function userRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       try {
         const { username, password } = request.query as { username: string; password: string };
-        const result = await new UserController().login(username, password);
+        const result = await new UserController(fastify).login(username, password);
 
         reply.header('X-Rate-Limit', '100');
         reply.header('X-Expires-After', result.expiresAfter);
@@ -241,23 +243,27 @@ async function userRoutes(fastify: FastifyInstance) {
     },
   );
 
-  // GET /user/logout
+  // GET /users/logout - User logout
   fastify.get(
-    '/user/logout',
+    '/users/logout',
     {
+      preHandler: [fastify.authenticate],
       schema: {
         response: {
           200: Type.Object({
             message: Type.String(),
           }),
+          401: Type.Object({
+            error: Type.String(),
+          }),
         },
       },
     },
-    async (request, reply) => {
+    async (request, _reply) => {
       try {
-        const username = (request.headers['x-username'] as string) || '';
-        await new UserController().logout(username);
-        return reply.send({ message: 'User logged out successfully' });
+        const { username } = request.user as { username: string };
+        await new UserController(fastify).logout(username);
+        return { message: 'Successfully logged out' };
       } catch (err) {
         request.log.error({ err }, 'Handler error');
         throw err;

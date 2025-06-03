@@ -1,12 +1,20 @@
 import { User, UserSession } from '../models/User.ts';
-import { randomBytes } from 'crypto';
+import { FastifyInstance } from 'fastify';
 
 // In-memory storage
-const users: Map<string, User> = new Map();
-const sessions: Map<string, UserSession> = new Map();
+export const users: Map<string, User> = new Map();
+export const sessions: Map<string, UserSession> = new Map();
 
 export class UserController {
-  async createUser(user: User): Promise<User> {
+  private fastify: FastifyInstance;
+
+  constructor(fastify?: FastifyInstance) {
+    this.fastify = fastify!;
+  }
+  async createUser(userData: Omit<User, 'id'>): Promise<User> {
+    // Generate a new ID for the user
+    const id = Date.now();
+    const user: User = { ...userData, id };
     users.set(user.username, user);
     return user;
   }
@@ -38,7 +46,13 @@ export class UserController {
   async login(username: string, password: string): Promise<{ token: string; expiresAfter: string }> {
     const user = users.get(username);
     if (!user || user.password !== password) throw new Error('Invalid credentials');
-    const token = randomBytes(16).toString('hex');
+    
+    // Sign JWT token
+    const token = this.fastify.jwt.sign(
+      { username, id: user.id },
+      { expiresIn: '1h' }
+    );
+    
     const expiresAfterDate = new Date(Date.now() + 3600_000);
     sessions.set(token, { username, token, expiresAt: expiresAfterDate, rateLimit: 100 });
     return { token, expiresAfter: expiresAfterDate.toISOString() };

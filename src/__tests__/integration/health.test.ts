@@ -1,15 +1,32 @@
 import { FastifyInstance } from 'fastify';
-import { build } from '../../app.ts';
+import Fastify from 'fastify';
+import healthPlugin from '../../routes/health.ts';
+
+// Mock the Redis client
+jest.mock('redis', () => ({
+  createClient: jest.fn().mockImplementation(() => ({
+    connect: jest.fn().mockResolvedValue(undefined),
+    ping: jest.fn().mockResolvedValue('PONG'),
+    quit: jest.fn().mockResolvedValue('OK'),
+  })),
+}));
 
 describe('Health Check Integration Tests', () => {
   let app: FastifyInstance;
 
   beforeAll(async () => {
-    app = await build();
+    app = Fastify();
+    
+    // Mock process.env for the test
+    process.env.NODE_ENV = 'test';
+    
+    await app.register(healthPlugin);
+    await app.ready();
   });
 
   afterAll(async () => {
     await app.close();
+    jest.clearAllMocks();
   });
 
   it('should return 200 OK on health check endpoint', async () => {

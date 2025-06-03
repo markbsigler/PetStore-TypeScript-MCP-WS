@@ -17,10 +17,11 @@ const inventory: StoreInventory = {
 
 
 export async function registerStoreRoutes(fastify: FastifyInstance, authenticate?: AuthenticateFunction) {
-  // Get inventory
+  // Get inventory - public endpoint
   fastify.get(
     '/store/inventory',
     {
+      preHandler: [], // No authentication required
       schema: {
         response: {
           200: {

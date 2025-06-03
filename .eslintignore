@@ -5,3 +5,11 @@ src/generated/
 *.js
 *.d.ts
 jest.config.ts
+dev.ts
+*.js
+*.d.ts
+node_modules/
+dist/
+coverage/
+*.md
+*.json

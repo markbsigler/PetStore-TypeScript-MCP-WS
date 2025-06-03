@@ -7,11 +7,12 @@ import fastifyRateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
 import fastifySwagger from '@fastify/swagger';
 import fastifySwaggerUi from '@fastify/swagger-ui';
-import websocketPlugin from './websocket.ts';
-import redisPlugin from './redis.ts';
-import securityPlugin from './security.ts';
-import { errorHandler } from '../utils/errors.ts';
-import { config } from '../config/index.ts';
+import fastifyWebSocket from '@fastify/websocket';
+import websocketPlugin from './websocket.js';
+import redisPlugin from './redis.js';
+import securityPlugin from './security.js';
+import { errorHandler } from '../utils/errors.js';
+import { config } from '../config/index.js';
 
 export default async function registerPlugins(app: FastifyInstance) {
   // Error handling
@@ -24,12 +25,44 @@ export default async function registerPlugins(app: FastifyInstance) {
   await app.register(fastifyRateLimit, config.rateLimit);
 
   // Authentication
-  await app.register(fastifyJwt, config.jwt);
+  await app.register(fastifyJwt, {
+    ...config.jwt,
+    verify: {
+      maxAge: '1h',
+    },
+  });
+
   app.decorate('authenticate', async function(request: FastifyRequest, _reply: FastifyReply) {
     app.log.info({ url: request.url, method: request.method }, 'authenticate decorator called');
+    
     try {
-      await request.jwtVerify();
+      // Get the authorization header
+      const authHeader = request.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        throw new Error('No token provided');
+      }
+      
+      const token = authHeader.split(' ')[1];
+      
+      // Verify the JWT token
+      const decoded = await request.jwtVerify<{ username: string; id?: number }>();
+      
+      // Import the sessions map dynamically to avoid circular dependencies
+      const { sessions } = await import('../controllers/UserController.js');
+      const session = sessions.get(token);
+      
+      if (!session) {
+        throw new Error('Session not found');
+      }
+      
+      // Attach the user to the request for use in route handlers
+      request.user = {
+        username: decoded.username,
+        id: decoded.id
+      };
+      
     } catch (err) {
+      app.log.error({ err }, 'Authentication failed');
       _reply.code(401).send({ error: 'Unauthorized' });
     }
   });
@@ -71,7 +104,41 @@ export default async function registerPlugins(app: FastifyInstance) {
   });
 
   // WebSocket support
-  await app.register(websocketPlugin);
+  console.log('\n=== Registering WebSocket support ===');
+  
+  // First register the @fastify/websocket plugin
+  console.log('Registering @fastify/websocket plugin...');
+  await app.register(fastifyWebSocket, {
+    options: { maxPayload: 1048576 } // 1MB max payload
+  });
+  console.log('@fastify/websocket plugin registered successfully');
+  
+  // Then register our custom WebSocket plugin
+  console.log('Registering custom WebSocket plugin...');
+  if (typeof websocketPlugin !== 'function') {
+    const error = new Error('WebSocket plugin is not a function');
+    console.error('Invalid WebSocket plugin:', error);
+    throw error;
+  }
+  
+  try {
+    await app.register(websocketPlugin);
+    console.log('Custom WebSocket plugin registered successfully');
+    
+    // Log all registered routes after plugin registration
+    const routes = app.routes || [];
+    console.log('\n=== Registered Routes After WebSocket Plugin ===');
+    routes.forEach((route: { method: string | string[]; url: string }) => {
+      const methods = Array.isArray(route.method) ? route.method.join(',') : route.method;
+      console.log(`${methods} ${route.url}`);
+    });
+    console.log('==============================================\n');
+    
+  } catch (error) {
+    console.error('Failed to register custom WebSocket plugin:', error);
+    app.log.error('Failed to register custom WebSocket plugin:', error);
+    throw error;
+  }
 
   // Register Redis plugin before cache and others that depend on it
   await app.register(redisPlugin);

@@ -104,7 +104,7 @@ async function petRoutes(fastify: FastifyInstance) {
     },
   );
 
-  // POST /pets/{petId}/uploadImage
+  // POST /pets/:petId/uploadImage
   fastify.post(
     '/pets/:petId/uploadImage',
     {
@@ -150,7 +150,7 @@ async function petRoutes(fastify: FastifyInstance) {
     },
   );
 
-  // GET /pets
+  // GET /pets - List all pets
   fastify.get(
     '/pets',
     {
@@ -172,7 +172,7 @@ async function petRoutes(fastify: FastifyInstance) {
     },
   );
 
-  // GET /pets/{petId}
+  // GET /pets/:petId - Get pet by ID
   fastify.get(
     '/pets/:petId',
     {
@@ -203,7 +203,7 @@ async function petRoutes(fastify: FastifyInstance) {
     },
   );
 
-  // POST /pets
+  // POST /pets - Add a new pet
   fastify.post(
     '/pets',
     {
@@ -213,9 +213,6 @@ async function petRoutes(fastify: FastifyInstance) {
         response: {
           201: PetResponseSchema,
           400: Type.Object({
-            error: Type.String(),
-          }),
-          500: Type.Object({
             error: Type.String(),
           }),
         },
@@ -236,7 +233,7 @@ async function petRoutes(fastify: FastifyInstance) {
     },
   );
 
-  // PUT /pets/:petId
+  // PUT /pets/:petId - Update an existing pet
   fastify.put(
     '/pets/:petId',
     {
@@ -269,7 +266,7 @@ async function petRoutes(fastify: FastifyInstance) {
     },
   );
 
-  // DELETE /pets/:petId
+  // DELETE /pets/:petId - Delete a pet
   fastify.delete(
     '/pets/:petId',
     {

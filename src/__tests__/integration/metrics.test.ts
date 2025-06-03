@@ -1,20 +1,19 @@
 import { FastifyInstance } from 'fastify';
-import { build } from '../../app.ts';
+import Fastify from 'fastify';
+import metricsPlugin from '../../routes/metrics.ts';
 
 describe('Metrics Integration Tests', () => {
   let app: FastifyInstance;
 
   beforeAll(async () => {
-    app = await build();
+    app = Fastify();
+    await app.register(metricsPlugin);
+    await app.ready();
   });
 
   afterAll(async () => {
     await app.close();
   });
-
-  // beforeEach(() => {
-  //   registry.clear();
-  // });
 
   it('should expose metrics endpoint', async () => {
     const response = await app.inject({

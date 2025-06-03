@@ -227,8 +227,8 @@ A health check endpoint is available at `/health` that reports the status of the
 
 ```mermaid
 graph TD
-    A[WebSocket Events / System Events] -->|"emit()"| B[Metrics Helpers
-(updateConnectionMetrics, updateSystemMetrics, etc.)]
+    A[WebSocket Events / System Events] -->|"emit()"| B[Metrics Helpers]
+    B[updateConnectionMetrics, updateSystemMetrics, etc.]
     B -->|"registerMetrics()"| C[Prometheus Metrics Registry]
     C -->|"expose()"| D[/metrics Endpoint]
     D -->|"scrape()"| E[Prometheus Server]
