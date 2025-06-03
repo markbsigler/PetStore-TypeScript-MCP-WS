@@ -23,8 +23,8 @@ const plugin: FastifyPluginAsync = fp(async (fastify) => {
   // Register WebSocket action handlers
   registerPetHandlers(fastify);
 
-  // Register WebSocket route
-  fastify.get('/ws', { websocket: true }, (connection, req) => {
+  // Register WebSocket route with /api/v1 prefix
+  fastify.get('/api/v1/ws', { websocket: true }, (connection, req) => {
     fastify.log.info({
       msg: 'WebSocket client connected',
       ip: req.ip,

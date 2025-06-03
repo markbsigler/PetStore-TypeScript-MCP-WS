@@ -20,15 +20,15 @@ endpoints=(
   "/health"
   "/metrics"
   "/"
-  "/pets"
-  "/pets?status=available"
-  "/pets/1"
-  "/store/orders"
-  "/store/orders/1"
-  "/users"
-  "/users/login"
-  "/users/logout"
-  "/users/testuser"
+  "/api/v1/pets"
+  "/api/v1/pets?status=available"
+  "/api/v1/pets/1"
+  "/api/v1/store/orders"
+  "/api/v1/store/orders/1"
+  "/api/v1/users"
+  "/api/v1/users/login"
+  "/api/v1/users/logout"
+  "/api/v1/users/testuser"
 )
 
 for endpoint in "${endpoints[@]}"
@@ -41,7 +41,7 @@ done
 # Requires: wscat (npm install -g wscat)
 if command -v wscat >/dev/null 2>&1; then
   echo "\n--- Testing WebSocket Connection ---"
-  echo "Attempting to connect to WebSocket at ws://localhost:$PORT/ws"
+  echo "Attempting to connect to WebSocket at ws://localhost:$PORT/api/v1/ws"
   
   # Create a temporary file for WebSocket test output
   WS_OUTPUT=$(mktemp)
@@ -52,7 +52,7 @@ if command -v wscat >/dev/null 2>&1; then
     echo '{"type":"ping","timestamp":'$(date +%s000)'}'
     # Wait for response
     sleep 1
-  ) | timeout 5 wscat -c ws://localhost:$PORT/ws 2>&1 | tee "$WS_OUTPUT" || true
+  ) | timeout 5 wscat -c ws://localhost:$PORT/api/v1/ws 2>&1 | tee "$WS_OUTPUT" || true
   
   # Check if we got any response
   if grep -q "pong" "$WS_OUTPUT"; then
