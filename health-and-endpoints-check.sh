@@ -19,21 +19,16 @@ sleep 3
 endpoints=(
   "/health"
   "/metrics"
-  "/" # root
+  "/"
   "/pets"
-  "/pets/findByStatus"
-  "/pets/findByTags"
-  "/pet/1"
-  "/pet/1/uploadImage"
-  "/store/inventory"
-  "/store/order"
-  "/store/order/1"
-  "/user"
-  "/user/createWithArray"
-  "/user/createWithList"
-  "/user/login"
-  "/user/logout"
-  "/user/testuser"
+  "/pets?status=available"
+  "/pets/1"
+  "/store/orders"
+  "/store/orders/1"
+  "/users"
+  "/users/login"
+  "/users/logout"
+  "/users/testuser"
 )
 
 for endpoint in "${endpoints[@]}"
@@ -42,19 +37,36 @@ do
   curl -i http://localhost:$PORT$endpoint || echo "Failed: $endpoint"
 done
 
-# WebSocket check (basic connect, auth, and ping)
+# WebSocket test
 # Requires: wscat (npm install -g wscat)
 if command -v wscat >/dev/null 2>&1; then
-  echo "\n--- WebSocket: Connect, Auth, and Ping ---"
+  echo "\n--- Testing WebSocket Connection ---"
+  echo "Attempting to connect to WebSocket at ws://localhost:$PORT/ws"
+  
+  # Create a temporary file for WebSocket test output
+  WS_OUTPUT=$(mktemp)
+  
+  # Run WebSocket test with a timeout
   (
+    # Send a simple ping message
+    echo '{"type":"ping","timestamp":'$(date +%s000)'}'
+    # Wait for response
     sleep 1
-    echo '{"type":"request","correlationId":"test-auth-1","timestamp":'$(date +%s000)',"action":"authenticate","payload":{"token":"dummy-token"}}'
-    sleep 1
-    echo '{"type":"request","correlationId":"test-ping-1","timestamp":'$(date +%s000)',"action":"ping","payload":{}}'
-    sleep 1
-  ) | wscat -c ws://localhost:$PORT/ws || echo "WebSocket test failed"
+  ) | timeout 5 wscat -c ws://localhost:$PORT/ws 2>&1 | tee "$WS_OUTPUT" || true
+  
+  # Check if we got any response
+  if grep -q "pong" "$WS_OUTPUT"; then
+    echo "✅ WebSocket connection successful"
+  else
+    echo "❌ WebSocket test failed or no response received"
+    echo "WebSocket output:"
+    cat "$WS_OUTPUT"
+  fi
+  
+  # Clean up
+  rm -f "$WS_OUTPUT"
 else
-  echo "wscat not found, skipping WebSocket checks. Install with: npm install -g wscat"
+  echo "⚠️  wscat not found, skipping WebSocket checks. Install with: npm install -g wscat"
 fi
 
 # Kill server
