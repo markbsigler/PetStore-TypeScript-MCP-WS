@@ -1,6 +1,27 @@
-# WebSocket-based Pet Store API
+# 🐾 WebSocket-based Pet Store API
+
+[![Node.js CI](https://github.com/markbsigler/PetStore-TypeScript-MCP-WS/actions/workflows/node.js.yml/badge.svg)](https://github.com/markbsigler/PetStore-TypeScript-MCP-WS/actions/workflows/node.js.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.1-blue.svg)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js->=18-green.svg)](https://nodejs.org/)
 
 A robust WebSocket-based API implementation for a pet store, built with TypeScript, ESM, and modern best practices. This project implements a RESTful API with WebSocket support for real-time updates, following the OpenAPI 3.0 specification.
+
+## Table of Contents
+- [Features](#features)
+- [Quick Start](#quick-start)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [API Documentation](#api-documentation)
+- [Authentication](#authentication)
+- [Monitoring and Metrics](#monitoring-and-metrics)
+- [Testing](#testing)
+- [Deployment](#deployment)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+- [License](#license)
+- [Roadmap](#roadmap)
 
 ---
 
@@ -72,36 +93,114 @@ A robust WebSocket-based API implementation for a pet store, built with TypeScri
   - Load distribution
   - Cluster-wide broadcasting
 
+## Quick Start
+
+Get started with the Pet Store API in minutes:
+
+1. Clone and install dependencies:
+   ```bash
+   git clone https://github.com/yourusername/PetStore-TypeScript-MCP-WS.git
+   cd PetStore-TypeScript-MCP-WS
+   npm install
+   ```
+
+2. Set up environment variables:
+   ```bash
+   cp .env.example .env
+   # Edit .env with your configuration
+   ```
+
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+4. Access the API documentation at `http://localhost:3000/documentation`
+
 ## Prerequisites
 
 - Node.js >= 18
-- Redis
+- Redis (for session storage and pub/sub)
 - Docker and Docker Compose (for containerized deployment)
+- npm >= 9 or yarn >= 1.22
+- TypeScript 5.1.x (recommended)
+
+## Configuration
+
+### Environment Variables
+
+Create a `.env` file in the root directory with the following variables:
+
+```env
+# Server Configuration
+NODE_ENV=development
+PORT=3000
+HOST=0.0.0.0
+
+# JWT Configuration
+JWT_SECRET=your_jwt_secret_here
+JWT_EXPIRES_IN=1h
+
+# Redis Configuration (for sessions and pub/sub)
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+
+# CORS Configuration
+CORS_ORIGIN=*
+
+# Rate Limiting
+RATE_LIMIT_WINDOW_MS=900000  # 15 minutes
+RATE_LIMIT_MAX=100  # Max requests per window
+
+# Monitoring
+METRICS_ENABLED=true
+METRICS_PATH=/metrics
+
+# Logging
+LOG_LEVEL=info
+LOG_FORMAT=json
+```
+
+### Configuration Files
+
+- `tsconfig.json` - TypeScript configuration
+- `jest.config.js` - Jest test configuration
+- `docker-compose.yml` - Docker Compose configuration for local development
+- `Dockerfile` - Production Dockerfile
+- `src/config/` - Application configuration files
 
 ## Installation
 
 1. Clone the repository:
-```bash
-git clone https://github.com/markbsigler/PetStore-TypeScript-MCP-WS.git
-cd PetStore-TypeScript-MCP-WS
-```
+   ```bash
+   git clone https://github.com/yourusername/PetStore-TypeScript-MCP-WS.git
+   cd PetStore-TypeScript-MCP-WS
+   ```
 
 2. Install dependencies:
-```bash
-npm install
-```
+   ```bash
+   npm install
+   ```
 
-3. Create a `.env` file:
-```bash
-cp .env.example .env
-```
+3. Set up environment variables:
+   ```bash
+   cp .env.example .env
+   # Edit .env with your configuration
+   ```
 
-4. Build the project:
-```bash
-npm run build
-```
+4. Start Redis (required for sessions and pub/sub):
+   ```bash
+   docker-compose up -d redis
+   ```
 
-> **Note:** If you encounter TypeScript/ESLint warnings about version compatibility, use TypeScript 5.1.x for best results.
+5. Build and start the application:
+   ```bash
+   npm run build
+   npm start
+   ```
+
+> **Note:** For development with hot-reloading, use `npm run dev` instead of `npm start`.
 
 ## Development
 
@@ -189,18 +288,189 @@ npm test -- src/__tests__/integration/
 
 > **Tip:** All npm scripts are ESM/TypeScript compatible. Use `.ts` extensions in imports for all source and test files.
 
-## Docker Deployment
+## Deployment
 
-Build and start the containers:
-```bash
-npm run docker:build
-npm run docker:up
+### Docker Compose (Development)
+
+1. Start all services:
+   ```bash
+   docker-compose up -d
+   ```
+
+2. Access the application:
+   - API: http://localhost:3000
+   - API Docs: http://localhost:3000/documentation
+   - Grafana: http://localhost:3001
+   - Prometheus: http://localhost:9090
+
+### Production Deployment
+
+1. Build the Docker image:
+   ```bash
+   docker build -t petstore-api .
+   ```
+
+2. Run the container:
+   ```bash
+   docker run -d \
+     --name petstore-api \
+     -p 3000:3000 \
+     --env-file .env \
+     --restart unless-stopped \
+     petstore-api
+   ```
+
+### Kubernetes
+
+Example deployment:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: petstore-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: petstore-api
+  template:
+    metadata:
+      labels:
+        app: petstore-api
+    spec:
+      containers:
+      - name: petstore-api
+        image: petstore-api:latest
+        ports:
+        - containerPort: 3000
+        envFrom:
+        - secretRef:
+            name: petstore-secrets
+        resources:
+          limits:
+            cpu: "1"
+            memory: "512Mi"
+          requests:
+            cpu: "0.5"
+            memory: "256Mi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
 ```
 
-Stop the containers:
-```bash
-npm run docker:down
-```
+## Troubleshooting
+
+### Common Issues
+
+1. **Port Conflicts**
+   - Ensure ports 3000 (API), 3001 (Grafana), and 9090 (Prometheus) are available
+
+2. **Redis Connection Issues**
+   - Check if Redis is running: `docker ps | grep redis`
+   - Verify Redis connection string in `.env`
+
+3. **JWT Errors**
+   - Ensure `JWT_SECRET` is set and consistent across services
+   - Check token expiration
+
+4. **TypeScript Errors**
+   - Use TypeScript 5.1.x
+   - Run `npm install` to ensure all types are installed
+
+### Debugging
+
+1. **Enable Debug Logging**
+   ```bash
+   DEBUG=* npm run dev
+   ```
+
+2. **Check Container Logs**
+   ```bash
+   docker-compose logs -f
+   ```
+
+3. **Inspect Running Containers**
+   ```bash
+   docker ps
+   docker exec -it <container_id> sh
+   ```
+
+## Contributing
+
+We welcome contributions! Here's how to get started:
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Commit your changes: `git commit -m 'Add some amazing feature'`
+4. Push to the branch: `git push origin feature/amazing-feature`
+5. Open a pull request
+
+### Development Workflow
+
+1. Create an issue describing the bug or feature
+2. Assign the issue to yourself
+3. Create a branch from `main`
+4. Write tests for your changes
+5. Ensure all tests pass
+6. Update documentation
+7. Submit a pull request
+
+### Code Style
+
+- Follow [TypeScript Style Guide](https://google.github.io/styleguide/tsguide.html)
+- Use Prettier for code formatting
+- Run `npm run lint` before committing
+- Write meaningful commit messages
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Roadmap
+
+### Upcoming Features
+
+- [ ] Refresh tokens
+- [ ] Two-factor authentication
+- [ ] API versioning
+- [ ] WebSocket compression
+- [ ] Rate limiting per endpoint
+- [ ] Advanced search with Elasticsearch
+- [ ] File upload service
+- [ ] Email notifications
+- [ ] Webhook support
+
+### In Progress
+
+- [x] Basic authentication
+- [x] WebSocket support
+- [x] Metrics and monitoring
+- [x] Docker support
+
+### Completed
+
+- [x] Project setup
+- [x] CI/CD pipeline
+- [x] Basic API endpoints
+- [x] Testing framework
+
+---
+
+<p align="center">
+  <a href="https://github.com/markbsigler/PetStore-TypeScript-MCP-WS">GitHub</a> •
+  <a href="https://github.com/markbsigler/PetStore-TypeScript-MCP-WS/issues">Issues</a> •
+  <a href="https://github.com/markbsigler/PetStore-TypeScript-MCP-WS/pulls">Pull Requests</a>
+</p>
 
 ## API Documentation
 
@@ -257,69 +527,151 @@ npm run docker:down
 
 ## Authentication
 
-The API uses JWT (JSON Web Tokens) for authentication. Here's how to use it:
+The API uses JWT (JSON Web Tokens) for authentication with session management. Here's how to use it:
 
-1. **Register a new user** (no token required):
-   ```
-   POST /api/v1/users
-   ```
+### 1. Register a New User
 
-2. **Log in** to get a JWT token:
-   ```
-   GET /api/v1/users/login?username=testuser&password=password123
-   ```
+```http
+POST /api/v1/users
+Content-Type: application/json
 
-3. **Use the token** for authenticated requests:
-   ```
-   Authorization: Bearer <your-jwt-token>
-   ```
+{
+  "username": "testuser",
+  "password": "securePassword123!",
+  "email": "test@example.com",
+  "firstName": "Test",
+  "lastName": "User",
+  "phone": "123-456-7890",
+  "userStatus": 1
+}
+```
 
-4. **Log out** when done (invalidates the current session):
-   ```
-   GET /api/v1/users/logout
-   Authorization: Bearer <your-jwt-token>
-   ```
+### 2. Log In to Get a JWT Token
 
-### Token Expiration
-- Tokens are valid for 1 hour by default
-- After logout, the token is invalidated on the server side
-- You'll need to log in again to get a new token after expiration or logout
+```http
+GET /api/v1/users/login?username=testuser&password=securePassword123!
+```
+
+**Response:**
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIs...",
+  "expiresAfter": "2025-06-03T23:32:16.102Z"
+}
+```
+
+### 3. Use the Token for Authenticated Requests
+
+Include the token in the `Authorization` header:
+
+```http
+GET /api/v1/users/me
+Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
+```
+
+### 4. Log Out (Invalidate Session)
+
+```http
+GET /api/v1/users/logout
+Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
+```
+
+### Token Management
+
+- **Expiration**: Tokens are valid for 1 hour by default (configurable via `JWT_EXPIRES_IN`)
+- **Session Invalidation**: Tokens are invalidated on the server side after logout
+- **Refresh Tokens**: Not currently implemented (see Roadmap)
+- **Rate Limiting**: Authentication endpoints are rate-limited to prevent brute force attacks
+
+### Security Best Practices
+
+1. Always use HTTPS in production
+2. Store tokens securely (httpOnly cookies recommended for web apps)
+3. Implement proper password policies
+4. Use strong JWT secrets
+5. Rotate secrets regularly
+6. Implement IP-based rate limiting
+7. Monitor failed login attempts
 
 ## Monitoring and Metrics
 
-The application provides comprehensive monitoring capabilities:
+The application provides comprehensive monitoring capabilities through Prometheus and Grafana.
 
-### Metrics Endpoint
-- `/metrics` - Exposes Prometheus-compatible metrics including:
-  - Request counts and response times
-  - Authentication attempts and failures
-  - Active sessions and token usage
-  - System resource usage
+### Built-in Monitoring Endpoints
 
-### Health Check
-- `/health` - Returns the health status of the application
+#### 1. Prometheus Metrics
+- **Endpoint**: `GET /metrics`
+- **Content-Type**: `text/plain; version=0.0.4; charset=utf-8`
+- **Authentication**: None
+
+**Example Response:**
+```
+# HELP http_requests_total Total number of HTTP requests
+# TYPE http_requests_total counter
+http_requests_total{method="GET",status="200",path="/api/v1/pets"} 42
+```
+
+#### 2. Health Check
+- **Endpoint**: `GET /health`
+- **Response**:
   ```json
   {
     "status": "ok",
     "timestamp": "2025-06-03T18:35:27.000Z",
-    "uptime": 123.45
+    "uptime": 123.45,
+    "services": {
+      "redis": "connected",
+      "database": "connected"
+    }
   }
   ```
 
 ### Grafana Dashboards
-Grafana dashboards are available at port 3000 by default:
-- Username: admin
-- Password: admin
 
-Dashboards include:
-- API request rates and response times
-- Authentication and session metrics
-- System resource usage
-- Error rates and types
+Grafana is pre-configured with the following dashboards:
 
-Default Grafana credentials:
-- Username: admin
-- Password: admin
+1. **API Overview**
+   - Request rates and response times
+   - Error rates by endpoint
+   - Latency percentiles
+
+2. **System Health**
+   - CPU and memory usage
+   - Event loop lag
+   - Garbage collection metrics
+
+3. **Authentication**
+   - Login attempts and failures
+   - Active sessions
+   - Token usage
+
+**Accessing Grafana:**
+- URL: `http://localhost:3001` (when running with Docker Compose)
+- Default credentials:
+  - Username: `admin`
+  - Password: `admin`
+
+### Setting Up Production Monitoring
+
+1. **Prometheus Configuration**
+   ```yaml
+   scrape_configs:
+     - job_name: 'petstore-api'
+       metrics_path: '/metrics'
+       static_configs:
+         - targets: ['localhost:3000']
+   ```
+
+2. **Alerting Rules**
+   - High error rate (>5% for 5 minutes)
+   - High CPU usage (>80% for 5 minutes)
+   - High memory usage (>90% for 5 minutes)
+   - Service down (health check failing)
+
+3. **Logging**
+   - Structured JSON logs
+   - Correlation IDs for request tracing
+   - Log levels: error, warn, info, debug, trace
 
 ### Health Checks
 
@@ -363,12 +715,61 @@ graph TD
 
 This diagram shows how metrics are updated in response to WebSocket and system events, registered with the Prometheus registry, and exposed via the `/metrics` endpoint for Prometheus and Grafana. Tests and error handling are integrated into the flow.
 
-## Testing & Reliability
+## Testing
 
-- All integration and unit tests are run with Jest and ts-jest in ESM mode.
-- Tests import source files using `.ts` extensions and expect ESM compatibility.
-- The test suite covers health checks, metrics, WebSocket protocols, and circuit breaker logic.
-- If you see coverage warnings, check the Jest output for details. All tests must pass for CI.
+The test suite is built with Jest and ts-jest, with full TypeScript and ESM support.
+
+### Running Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage
+npm run test:coverage
+
+# Run specific test file
+npm test -- src/__tests__/integration/pet.routes.test.ts
+```
+
+### Test Coverage
+
+Coverage reports are generated in the `coverage/` directory. The minimum coverage thresholds are:
+
+- Statements: 90%
+- Branches: 85%
+- Functions: 90%
+- Lines: 90%
+
+### Testing Strategy
+
+1. **Unit Tests**
+   - Test individual functions and classes in isolation
+   - Mock external dependencies
+   - Located in `src/__tests__/unit/`
+
+2. **Integration Tests**
+   - Test API endpoints and WebSocket communication
+   - Use a test database
+   - Located in `src/__tests__/integration/`
+
+3. **E2E Tests**
+   - Test complete user flows
+   - Use a real browser (Playwright)
+   - Located in `e2e/`
+
+### Testing Best Practices
+
+- Use descriptive test names
+- Follow the AAA pattern (Arrange, Act, Assert)
+- Keep tests independent and isolated
+- Test edge cases and error conditions
+- Use snapshots for complex objects
+- Mock external services
+- Clean up test data after each test
 
 ## Architecture
 
