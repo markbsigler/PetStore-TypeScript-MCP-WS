@@ -1,6 +1,6 @@
 # WebSocket-based Pet Store API
 
-A robust WebSocket-based API implementation for a pet store, built with TypeScript, ESM, and modern best practices.
+A robust WebSocket-based API implementation for a pet store, built with TypeScript, ESM, and modern best practices. This project implements a RESTful API with WebSocket support for real-time updates, following the OpenAPI 3.0 specification.
 
 ---
 
@@ -16,7 +16,14 @@ A robust WebSocket-based API implementation for a pet store, built with TypeScri
 
 ## Features
 
+- **RESTful API**
+  - Full CRUD operations for pets, users, and orders
+  - OpenAPI 3.0 documentation
+  - Request validation using Zod schemas
+  - Error handling with appropriate HTTP status codes
+
 - **WebSocket Communication**
+  - Real-time updates for resource changes
   - Type-safe message schemas using Zod
   - Request-response correlation with IDs
   - Request timeout handling
@@ -73,9 +80,8 @@ A robust WebSocket-based API implementation for a pet store, built with TypeScri
 
 1. Clone the repository:
 ```bash
-# Use your fork or the main repo
- git clone https://github.com/yourusername/petstore-typescript-mcp-ws.git
- cd petstore-typescript-mcp-ws
+git clone https://github.com/markbsigler/PetStore-TypeScript-MCP-WS.git
+cd PetStore-TypeScript-MCP-WS
 ```
 
 2. Install dependencies:
@@ -107,6 +113,11 @@ Run all tests:
 npm test
 ```
 
+Run tests with coverage:
+```bash
+npm run test:coverage
+```
+
 Run linting:
 ```bash
 npm run lint
@@ -120,6 +131,23 @@ npm run format
 Build the project:
 ```bash
 npm run build
+```
+
+### Testing
+
+The project includes comprehensive test coverage including:
+- Unit tests for controllers and utilities
+- Integration tests for API endpoints
+- WebSocket communication tests
+- Error handling and edge cases
+
+To run specific test files:
+```bash
+# Run controller tests
+npm test -- src/__tests__/controllers/
+
+# Run integration tests
+npm test -- src/__tests__/integration/
 ```
 
 > **Tip:** All npm scripts are ESM/TypeScript compatible. Use `.ts` extensions in imports for all source and test files.
@@ -137,6 +165,32 @@ Stop the containers:
 npm run docker:down
 ```
 
+## API Documentation
+
+### Available Endpoints
+
+#### Pet Endpoints
+- `POST /pets` - Create a new pet
+- `GET /pets/:id` - Get pet by ID
+- `PUT /pets/:id` - Update a pet
+- `DELETE /pets/:id` - Delete a pet
+- `GET /pets/findByStatus` - Find pets by status
+- `POST /pets/:id/uploadImage` - Upload an image for a pet
+
+#### Store Endpoints
+- `POST /store/order` - Place an order
+- `GET /store/order/:orderId` - Get order by ID
+- `DELETE /store/order/:orderId` - Delete an order
+- `GET /store/inventory` - Get store inventory
+
+#### User Endpoints
+- `POST /user` - Create user
+- `GET /user/:username` - Get user by username
+- `PUT /user/:username` - Update user
+- `DELETE /user/:username` - Delete user
+- `POST /user/login` - Logs user into the system
+- `GET /user/logout` - Logs out current logged-in user session
+
 ## Monitoring
 
 The application exposes metrics at `/metrics` for Prometheus to scrape. Grafana dashboards are available at port 3000.
@@ -144,6 +198,10 @@ The application exposes metrics at `/metrics` for Prometheus to scrape. Grafana 
 Default Grafana credentials:
 - Username: admin
 - Password: admin
+
+### Health Checks
+
+A health check endpoint is available at `/health` that reports the status of the application and its dependencies.
 
 ## Monitoring & Metrics
 
@@ -604,7 +662,7 @@ A script is provided to automatically validate all Mermaid diagrams in the READM
 
 ## Automated Endpoint Health Checks
 
-A script is provided to automatically build, start, and check the health and key endpoints of the server. This ensures that `/health`, `/metrics`, `/`, and `/pets` endpoints are always tested for availability and correctness.
+A script is provided to automatically build, start, and check the health and key endpoints of the server—including REST and WebSocket endpoints. This ensures that `/health`, `/metrics`, `/`, `/pets`, and WebSocket connect/auth/ping are always tested for availability and correctness.
 
 ### How to Run Endpoint Health Checks
 
@@ -612,7 +670,12 @@ A script is provided to automatically build, start, and check the health and key
    ```bash
    ./health-and-endpoints-check.sh
    ```
-   - This will build the project, start the server in the background, check all key endpoints, print their responses, and then stop the server.
+   - This will build the project, start the server in the background (using the correct ESM/TypeScript loader for Node.js), check all key REST endpoints, perform WebSocket connect/auth/ping checks (using `wscat`), print their responses, and then stop the server.
+   - **Note:** If you encounter a TypeScript/ESM loader error, ensure you are using Node.js >= 18 and that the script invokes the server with:
+     ```bash
+     node --loader ts-node/esm src/index.ts
+     ```
+     If you are using zsh, ensure the command is not split or quoted incorrectly. See comments in the script for details.
 
 2. **CI Integration:**
    - Add the following step to your GitHub Actions workflow after the build step:
@@ -624,4 +687,7 @@ A script is provided to automatically build, start, and check the health and key
     ./health-and-endpoints-check.sh
 ```
 
-> **Tip:** You can add or modify endpoints to check by editing the `health-and-endpoints-check.sh` script.
+> **Tip:**
+> - You can add or modify REST or WebSocket endpoints to check by editing the `health-and-endpoints-check.sh` script.
+> - If you encounter permission or port issues, ensure no other process is using the server port and that the script has execute permissions (`chmod +x`).
+> - For ESM/TypeScript loader issues, see the troubleshooting note above and ensure all dependencies are installed.
