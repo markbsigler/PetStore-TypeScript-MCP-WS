@@ -1,4 +1,4 @@
-import { User, UserSession } from '../models/User.js';
+import { User, UserSession } from '../models/User.ts';
 import { randomBytes } from 'crypto';
 
 // In-memory storage

@@ -1,5 +1,5 @@
 import { FastifyPluginAsync } from 'fastify';
-import { withCache } from '../../decorators/cache.js';
+import { withCache } from '../../decorators/cache.ts';
 import { Type } from '@sinclair/typebox';
 
 const PetTypeBoxSchema = Type.Object({

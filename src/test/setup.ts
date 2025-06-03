@@ -5,7 +5,7 @@ import { AddressInfo } from 'net';
 import io from 'socket.io-client';
 import crypto from 'node:crypto';
 import { FastifyInstance } from 'fastify';
-import { build } from '../app.js';
+import { build } from '../app.ts';
 
 let testIo: Server;
 let clientSocket: ReturnType<typeof io>;

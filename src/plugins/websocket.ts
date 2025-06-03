@@ -1,7 +1,8 @@
 import fp from 'fastify-plugin';
 import websocket from '@fastify/websocket';
 import { FastifyPluginAsync } from 'fastify';
-import { WebSocketManager } from '../websocket/WebSocketManager.js';
+import { WebSocketManager } from '../websocket/WebSocketManager.ts';
+import { registerPetHandlers } from '../websocket/handlers/pet.ts';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -18,6 +19,9 @@ const plugin: FastifyPluginAsync = fp(async (fastify) => {
   // Create WebSocket manager
   const wsManager = new WebSocketManager(fastify);
   fastify.decorate('wsManager', wsManager);
+
+  // Register WebSocket action handlers
+  registerPetHandlers(fastify);
 
   // Register WebSocket route
   fastify.get('/ws', { websocket: true }, (connection, req) => {

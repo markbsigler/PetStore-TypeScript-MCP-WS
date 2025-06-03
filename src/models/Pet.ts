@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { PetStatusEnum, type PetStatus } from '../types/index.js';
+import { PetStatusEnum, type PetStatus } from '../types/index.ts';
 
 export const TagSchema = z.object({
   id: z.number().int(),

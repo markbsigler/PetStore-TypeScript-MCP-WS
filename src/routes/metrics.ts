@@ -81,6 +81,23 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       };
     },
   });
+
+  // Prometheus-compatible /metrics endpoint
+  fastify.get('/metrics', async (_request, reply) => {
+    // Example: expose a simple Prometheus metric
+    reply.type('text/plain');
+    return [
+      '# HELP app_uptime_seconds Application uptime in seconds',
+      '# TYPE app_uptime_seconds gauge',
+      `app_uptime_seconds ${(Date.now() - startTime) / 1000}`,
+      '# HELP app_requests_total Total HTTP requests',
+      '# TYPE app_requests_total counter',
+      `app_requests_total ${requestCount}`,
+      '# HELP app_errors_total Total HTTP errors',
+      '# TYPE app_errors_total counter',
+      `app_errors_total ${errorCount}`
+    ].join('\n') + '\n';
+  });
 };
 
 export default plugin;

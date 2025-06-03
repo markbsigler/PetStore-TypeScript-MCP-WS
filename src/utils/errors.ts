@@ -1,6 +1,6 @@
 import { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
 import { ZodError } from 'zod';
-import logger from './logger.js';
+import logger from './logger.ts';
 
 export class AppError extends Error {
   public statusCode: number;
@@ -55,6 +55,23 @@ export function errorHandler(
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
+  // DEBUG: Write the error object and its keys to a file for diagnosis (sync, using require)
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const fs = require('fs');
+    fs.appendFileSync(
+      'fastify-error-debug.log',
+      `\n[${new Date().toISOString()}] Error: ${JSON.stringify(error, Object.getOwnPropertyNames(error))}\nKeys: ${JSON.stringify(Object.keys(error))}\n`,
+      'utf8'
+    );
+  } catch (e) {
+    // fallback to console if file write fails
+    // eslint-disable-next-line no-console
+    console.error('DEBUG Fastify errorHandler received error:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    // eslint-disable-next-line no-console
+    console.error('DEBUG Fastify errorHandler error keys:', JSON.stringify(Object.keys(error)));
+  }
+
   const requestLogger = logger.child({
     requestId: request.id,
     method: request.method,
@@ -88,6 +105,33 @@ export function errorHandler(
         name: validationError.name,
         message: validationError.message,
         details: error.errors,
+      },
+    });
+  }
+
+  // Handle Fastify's built-in validation errors (e.g., from TypeBox)
+  // These errors are instances of FastifyError and often have a 'validation' property.
+  // They typically carry a statusCode like 400.
+  if ('validation' in error && error instanceof Error) {
+    const fastifyValidationError = error as FastifyError;
+    const statusCode = fastifyValidationError.statusCode || 400; // Default to 400
+
+    requestLogger.warn({
+      err: {
+        name: fastifyValidationError.name,
+        message: fastifyValidationError.message,
+        code: fastifyValidationError.code,
+        validation: fastifyValidationError.validation,
+        validationContext: fastifyValidationError.validationContext,
+      },
+      statusCode: statusCode,
+    }, 'Fastify validation error');
+
+    return reply.status(statusCode).send({
+      error: {
+        name: fastifyValidationError.name || 'ValidationError',
+        message: fastifyValidationError.message,
+        // details: fastifyValidationError.validation, // Usually too verbose for client
       },
     });
   }

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { OrderStatusEnum, type OrderStatus, type StoreInventory } from '../types/index.js';
+import { OrderStatusEnum, type OrderStatus, type StoreInventory } from '../types/index.ts';
 
 export const OrderSchema = z.object({
   id: z.number().int(),

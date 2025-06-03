@@ -1,9 +1,17 @@
 import { FastifyInstance } from 'fastify';
-import { UserController } from '../controllers/UserController.js';
-import { User } from '../types/user.js';
+import { UserController } from '../controllers/UserController.ts';
+import { User } from '../types/user.ts';
 import { Type } from '@sinclair/typebox';
 
-export async function userRoutes(fastify: FastifyInstance) {
+declare module 'fastify' {
+  interface FastifyInstance {
+    authenticate: (request: import('fastify').FastifyRequest, reply: import('fastify').FastifyReply) => Promise<void>;
+  }
+}
+
+async function userRoutes(fastify: FastifyInstance) {
+  fastify.log.info('Registering user routes');
+
   // Schema definitions
   const UserSchema = Type.Object({
     id: Type.Number(),
@@ -20,6 +28,7 @@ export async function userRoutes(fastify: FastifyInstance) {
   fastify.post(
     '/user',
     {
+      preHandler: [fastify.authenticate],
       schema: {
         body: UserSchema,
         response: {
@@ -35,8 +44,8 @@ export async function userRoutes(fastify: FastifyInstance) {
         const user = await new UserController().createUser(request.body as User);
         return reply.send(user);
       } catch (err) {
-        const error = err as Error;
-        return reply.status(400).send({ error: error.message });
+        request.log.error({ err }, 'Handler error');
+        throw err;
       }
     },
   );
@@ -45,6 +54,7 @@ export async function userRoutes(fastify: FastifyInstance) {
   fastify.post(
     '/user/createWithArray',
     {
+      preHandler: [fastify.authenticate],
       schema: {
         body: Type.Array(UserSchema),
         response: {
@@ -62,8 +72,8 @@ export async function userRoutes(fastify: FastifyInstance) {
         await new UserController().createUsersWithArray(request.body as User[]);
         return reply.send({ message: 'Users created successfully' });
       } catch (err) {
-        const error = err as Error;
-        return reply.status(400).send({ error: error.message });
+        request.log.error({ err }, 'Handler error');
+        throw err;
       }
     },
   );
@@ -72,6 +82,7 @@ export async function userRoutes(fastify: FastifyInstance) {
   fastify.post(
     '/user/createWithList',
     {
+      preHandler: [fastify.authenticate],
       schema: {
         body: Type.Array(UserSchema),
         response: {
@@ -89,8 +100,8 @@ export async function userRoutes(fastify: FastifyInstance) {
         await new UserController().createUsersWithList(request.body as User[]);
         return reply.send({ message: 'Users created successfully' });
       } catch (err) {
-        const error = err as Error;
-        return reply.status(400).send({ error: error.message });
+        request.log.error({ err }, 'Handler error');
+        throw err;
       }
     },
   );
@@ -120,11 +131,8 @@ export async function userRoutes(fastify: FastifyInstance) {
         const user = await new UserController().getUserByName(username);
         return reply.send(user);
       } catch (err) {
-        const error = err as Error;
-        if (error.message === 'User not found') {
-          return reply.status(404).send({ error: error.message });
-        }
-        return reply.status(400).send({ error: error.message });
+        request.log.error({ err }, 'Handler error');
+        throw err;
       }
     },
   );
@@ -133,6 +141,7 @@ export async function userRoutes(fastify: FastifyInstance) {
   fastify.put(
     '/user/:username',
     {
+      preHandler: [fastify.authenticate],
       schema: {
         params: Type.Object({
           username: Type.String(),
@@ -155,11 +164,8 @@ export async function userRoutes(fastify: FastifyInstance) {
         const user = await new UserController().updateUser(username, request.body as User);
         return reply.send(user);
       } catch (err) {
-        const error = err as Error;
-        if (error.message === 'User not found') {
-          return reply.status(404).send({ error: error.message });
-        }
-        return reply.status(400).send({ error: error.message });
+        request.log.error({ err }, 'Handler error');
+        throw err;
       }
     },
   );
@@ -168,11 +174,13 @@ export async function userRoutes(fastify: FastifyInstance) {
   fastify.delete(
     '/user/:username',
     {
+      preHandler: [fastify.authenticate],
       schema: {
         params: Type.Object({
           username: Type.String(),
         }),
         response: {
+          204: Type.Null(),
           400: Type.Object({
             error: Type.String(),
           }),
@@ -191,8 +199,8 @@ export async function userRoutes(fastify: FastifyInstance) {
         }
         return reply.status(204).send();
       } catch (err) {
-        const error = err as Error;
-        return reply.status(400).send({ error: error.message });
+        request.log.error({ err }, 'Handler error');
+        throw err;
       }
     },
   );
@@ -227,8 +235,8 @@ export async function userRoutes(fastify: FastifyInstance) {
 
         return reply.send(result);
       } catch (err) {
-        const error = err as Error;
-        return reply.status(400).send({ error: error.message });
+        request.log.error({ err }, 'Handler error');
+        throw err;
       }
     },
   );
@@ -251,9 +259,11 @@ export async function userRoutes(fastify: FastifyInstance) {
         await new UserController().logout(username);
         return reply.send({ message: 'User logged out successfully' });
       } catch (err) {
-        const error = err as Error;
-        return reply.status(400).send({ error: error.message });
+        request.log.error({ err }, 'Handler error');
+        throw err;
       }
     },
   );
 }
+
+export default userRoutes;
