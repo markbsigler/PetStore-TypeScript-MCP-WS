@@ -3,7 +3,7 @@
 # Build, start the server in the background, check health, REST, WebSocket, and auth endpoints, then kill the server.
 
 PORT=3000
-SERVER_CMD=(node --loader ts-node/esm src/index.ts)
+SERVER_CMD=(node dist/index.js)
 
 # Build
 npm run build || exit 1
