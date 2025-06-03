@@ -1,9 +1,8 @@
-import { Pet } from '../models/Pet.js';
+import { Pet, PetSchema } from '../models/Pet.ts';
 import { Server } from 'socket.io';
 import { v4 as uuidv4 } from 'uuid';
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { PetSchema } from '../models/Pet.js';
-import logger from '../utils/logger.js';
+import logger from '../utils/logger.ts';
 
 // In-memory storage
 const pets: Map<string, Pet> = new Map();
@@ -56,6 +55,17 @@ export class PetController {
   }
 
   async create(pet: Omit<Pet, 'id' | 'createdAt' | 'updatedAt'>): Promise<Pet> {
+    // Validate required fields
+    if (!pet.name) {
+      throw new Error('Name is required');
+    }
+    if (!pet.photoUrls || pet.photoUrls.length === 0) {
+      throw new Error('At least one photo URL is required');
+    }
+    if (!pet.status || !['available', 'pending', 'sold'].includes(pet.status)) {
+      throw new Error('Status must be one of: available, pending, sold');
+    }
+
     const newPet: Pet = {
       ...pet,
       id: uuidv4(),

@@ -1,15 +1,22 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { Order, OrderSchema, StoreInventory } from '../models/Store.js';
+import { Order, OrderSchema, StoreInventory } from '../models/Store.ts';
+import { zodToJsonSchema } from 'zod-to-json-schema';
+
+// Type for authentication function
+type AuthenticateFunction = (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
+
+const OrderJsonSchema = zodToJsonSchema(OrderSchema); // Use default (draft-07) for Fastify compatibility
 
 // In-memory storage
-const orders: Map<number, Order> = new Map();
+const orders = new Map<number, Order>();
 const inventory: StoreInventory = {
   available: 0,
   pending: 0,
   sold: 0,
 };
 
-export async function registerStoreRoutes(fastify: FastifyInstance) {
+
+export async function registerStoreRoutes(fastify: FastifyInstance, authenticate?: AuthenticateFunction) {
   // Get inventory
   fastify.get(
     '/store/inventory',
@@ -29,18 +36,27 @@ export async function registerStoreRoutes(fastify: FastifyInstance) {
   );
 
   // Place order
-  fastify.post(
+  fastify.post<{
+    Body: Order;
+    Reply: Order | { message: string };
+  }>(
     '/store/order',
     {
+      preHandler: authenticate ? [authenticate] : [],
       schema: {
-        body: OrderSchema,
+        body: OrderJsonSchema,
         response: {
-          200: OrderSchema,
-          400: { type: 'object', properties: { message: { type: 'string' } } },
+          200: OrderJsonSchema,
+          400: { 
+            type: 'object', 
+            properties: { 
+              message: { type: 'string' } 
+            } 
+          },
         },
       },
     },
-    async (request: FastifyRequest<{ Body: Order }>, _reply: FastifyReply) => {
+    async (request, _reply) => {
       const order = request.body;
       orders.set(order.id, order);
       return order;
@@ -48,7 +64,10 @@ export async function registerStoreRoutes(fastify: FastifyInstance) {
   );
 
   // Get order by ID
-  fastify.get(
+  fastify.get<{
+    Params: { orderId: number };
+    Reply: Order | { message: string };
+  }>(
     '/store/order/:orderId',
     {
       schema: {
@@ -60,18 +79,28 @@ export async function registerStoreRoutes(fastify: FastifyInstance) {
           required: ['orderId'],
         },
         response: {
-          200: OrderSchema,
-          400: { type: 'object', properties: { message: { type: 'string' } } },
-          404: { type: 'object', properties: { message: { type: 'string' } } },
+          200: OrderJsonSchema,
+          400: { 
+            type: 'object', 
+            properties: { 
+              message: { type: 'string' } 
+            } 
+          },
+          404: { 
+            type: 'object', 
+            properties: { 
+              message: { type: 'string' } 
+            } 
+          },
         },
       },
     },
-    async (request: FastifyRequest<{ Params: { orderId: number } }>, reply: FastifyReply) => {
+    async (request, _reply) => {
       const { orderId } = request.params;
       const order = orders.get(orderId);
 
       if (!order) {
-        reply.code(404);
+        _reply.code(404);
         return { message: 'Order not found' };
       }
 
@@ -80,9 +109,13 @@ export async function registerStoreRoutes(fastify: FastifyInstance) {
   );
 
   // Delete order
-  fastify.delete(
+  fastify.delete<{
+    Params: { orderId: number };
+    Reply: { message: string } | undefined;
+  }>(
     '/store/order/:orderId',
     {
+      preHandler: authenticate ? [authenticate] : [],
       schema: {
         params: {
           type: 'object',
@@ -92,21 +125,32 @@ export async function registerStoreRoutes(fastify: FastifyInstance) {
           required: ['orderId'],
         },
         response: {
-          400: { type: 'object', properties: { message: { type: 'string' } } },
-          404: { type: 'object', properties: { message: { type: 'string' } } },
+          204: { type: 'null' },
+          400: { 
+            type: 'object', 
+            properties: { 
+              message: { type: 'string' } 
+            } 
+          },
+          404: { 
+            type: 'object', 
+            properties: { 
+              message: { type: 'string' } 
+            } 
+          },
         },
       },
     },
-    async (request: FastifyRequest<{ Params: { orderId: number } }>, reply: FastifyReply) => {
+    async (request, _reply) => {
       const { orderId } = request.params;
 
       if (!orders.has(orderId)) {
-        reply.code(404);
+        _reply.code(404);
         return { message: 'Order not found' };
       }
 
       orders.delete(orderId);
-      reply.code(204);
+      _reply.code(204).send();
     },
   );
 }
