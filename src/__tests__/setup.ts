@@ -1,31 +1,35 @@
-import { WebSocket } from 'ws';
-
-// Extend global for custom test utilities
-declare global {
-  var createMockSocket: () => Partial<WebSocket>;
-  var createMockRequest: (overrides?: Record<string, unknown>) => Record<string, unknown>;
-  var wait: (ms: number) => Promise<void>;
-}
-
 // Only run jest.mock if jest is defined (workaround for ESM/ts-jest setup issues)
 if (typeof jest !== 'undefined') {
-  // Mock WebSocket
-  jest.mock('ws', () => {
-    return {
-      WebSocket: jest.fn().mockImplementation(() => {
-        return {
+  // Mock @fastify/websocket with a simple object
+  jest.mock('@fastify/websocket', () => ({
+    __esModule: true,
+    default: jest.fn(() => ({
+      default: jest.fn().mockImplementation((fastify) => {
+        const mockServer = {
           on: jest.fn(),
-          once: jest.fn(),
-          send: jest.fn(),
           close: jest.fn(),
-          ping: jest.fn(),
-          readyState: 1, // WebSocket.OPEN
+          address: jest.fn().mockReturnValue({ port: 3000 }),
         };
+        fastify.decorate('websocketServer', mockServer);
+        return Promise.resolve();
       }),
-      OPEN: 1,
-      CLOSED: 3,
-    };
-  });
+    })),
+  }));
+
+  // Mock WebSocket
+  jest.mock('ws', () => ({
+    __esModule: true,
+    default: jest.requireActual('../../src/__mocks__/ws').default,
+    WebSocket: jest.requireActual('../../src/__mocks__/ws').WebSocket,
+  }));
+  
+  // Mock our custom WebSocket plugin
+  jest.mock('../../src/plugins/websocket', () => ({
+    __esModule: true,
+    default: jest.fn(() => ({
+      default: jest.fn(),
+    })),
+  }));
 
   // Mock Redis
   jest.mock('ioredis', () => {
@@ -63,35 +67,11 @@ expect.extend({
       };
     } else {
       return {
-        message: () =>
-          `expected ${received} to be within range ${floor} - ${ceiling}`,
+        message: function() {
+          return `expected ${received} to be within range ${floor} - ${ceiling}`;
+        },
         pass: false,
       };
     }
   },
 });
-
-// Global test utilities
-global.createMockSocket = () => {
-  return {
-    on: jest.fn(),
-    once: jest.fn(),
-    send: jest.fn(),
-    close: jest.fn(),
-    ping: jest.fn(),
-    readyState: WebSocket.OPEN,
-  };
-};
-
-global.createMockRequest = (overrides = {}) => {
-  return {
-    ip: '127.0.0.1',
-    headers: {
-      authorization: 'Bearer test-token',
-      origin: 'http://localhost:3000',
-    },
-    ...overrides,
-  };
-};
-
-global.wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
