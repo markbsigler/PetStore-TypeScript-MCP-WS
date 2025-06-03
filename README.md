@@ -349,14 +349,14 @@ A health check endpoint is available at `/health` that reports the status of the
 
 ```mermaid
 graph TD
-    A[WebSocket Events / System Events] -->|"emit()"| B[Metrics Helpers]
+    A[WebSocket Events / System Events] -->|emit| B[Metrics Helpers]
     B[updateConnectionMetrics, updateSystemMetrics, etc.]
-    B -->|"registerMetrics()"| C[Prometheus Metrics Registry]
-    C -->|"expose()"| D[/metrics Endpoint]
-    D -->|"scrape()"| E[Prometheus Server]
-    E -->|"query()"| F[Grafana Dashboards]
-    C -->|"mock()"| G[Unit/Integration Tests]
-    B -->|"logError()"| H[Error Logging]
+    B -->|registerMetrics| C[Prometheus Metrics Registry]
+    C -->|expose| D[/metrics Endpoint]
+    D -->|scrape| E[Prometheus Server]
+    E -->|query| F[Grafana Dashboards]
+    C -->|mock| G[Unit/Integration Tests]
+    B -->|logError| H[Error Logging]
 ```
 
 This diagram shows how metrics are updated in response to WebSocket and system events, registered with the Prometheus registry, and exposed via the `/metrics` endpoint for Prometheus and Grafana. Tests and error handling are integrated into the flow.
