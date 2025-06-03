@@ -227,13 +227,14 @@ A health check endpoint is available at `/health` that reports the status of the
 
 ```mermaid
 graph TD
-    A[WebSocket Events / System Events] --> B[Metrics Helpers\n(updateConnectionMetrics, updateSystemMetrics, etc.)]
-    B --> C[Prometheus Metrics Registry]
-    C --> D[/metrics Endpoint]
-    D --> E[Prometheus Server]
-    E --> F[Grafana Dashboards]
-    C -->|Test/Mock| G[Unit/Integration Tests]
-    B -->|Error Handling| H[Error Logging]
+    A[WebSocket Events / System Events] -->|"emit()"| B[Metrics Helpers
+(updateConnectionMetrics, updateSystemMetrics, etc.)]
+    B -->|"registerMetrics()"| C[Prometheus Metrics Registry]
+    C -->|"expose()"| D[/metrics Endpoint]
+    D -->|"scrape()"| E[Prometheus Server]
+    E -->|"query()"| F[Grafana Dashboards]
+    C -->|"mock()"| G[Unit/Integration Tests]
+    B -->|"logError()"| H[Error Logging]
 ```
 
 This diagram shows how metrics are updated in response to WebSocket and system events, registered with the Prometheus registry, and exposed via the `/metrics` endpoint for Prometheus and Grafana. Tests and error handling are integrated into the flow.
@@ -259,14 +260,14 @@ graph TB
     Redis[(Redis)]
     Metrics[Metrics Collector]
     
-    Client -->|Connection| LB
-    LB -->|Route| WS
-    WS -->|Process| CB
-    CB -->|Queue| MQ
-    MQ -->|Store/Retrieve| Redis
-    WS -->|Monitor| Metrics
-    CB -->|Monitor| Metrics
-    MQ -->|Monitor| Metrics
+    Client <-->|"1. Connect/Disconnect"| LB
+    LB <-->|"2. Route Messages"| WS
+    WS <-->|"3. Process Requests"| CB
+    CB <-->|"4. Queue Operations"| MQ
+    MQ <-->|"5. Persistent Storage"| Redis
+    WS -->|"6. Emit Metrics"| Metrics
+    CB -->|"7. Report State"| Metrics
+    MQ -->|"8. Queue Stats"| Metrics
 ```
 
 ### Message Flow Sequence
@@ -282,13 +283,17 @@ sequenceDiagram
     C->>WS: 1. Connect
     WS->>C: 2. Connection Accepted
     C->>WS: 3. Send Request
-    WS->>CB: 4. Process Request
-    CB->>MQ: 5. Queue Message
-    MQ->>R: 6. Store Data
-    R-->>MQ: 7. Data Stored
-    MQ-->>CB: 8. Processing Complete
-    CB-->>WS: 9. Response Ready
-    WS-->>C: 10. Send Response
+    alt Request Valid
+        WS->>CB: 4. Process Request
+        CB->>MQ: 5. Queue Message
+        MQ->>R: 6. Store Data
+        R-->>MQ: 7. Data Stored
+        MQ-->>CB: 8. Processing Complete
+        CB-->>WS: 9. Response Ready
+        WS-->>C: 10. Send Response
+    else Request Invalid
+        WS-->>C: 4. Error: Invalid Request
+    end
 ```
 
 ### State Management
@@ -459,6 +464,12 @@ sequenceDiagram
     alt Token Valid
         WS->>Redis: 8a. Store Session
         WS->>C: 8b. Auth Success
+        loop Token Refresh
+            C->>WS: 9. Refresh Token (before expiry)
+            WS->>Auth: 10. Validate Refresh Token
+            Auth-->>WS: 11. New Access Token
+            WS->>C: 12. New Token
+        end
     else Token Invalid
         WS->>C: 8c. Auth Failed
         WS->>C: 8d. Close Connection
@@ -491,16 +502,23 @@ sequenceDiagram
 #### Rate Limiting Implementation
 ```mermaid
 graph TD
-    A[Incoming Request] -->|Check| B{Rate Limit Check}
-    B -->|Under Limit| C[Process Request]
-    B -->|Over Limit| D[Rate Limited]
-    D -->|429 Response| E[Client]
+    A[Incoming Request] -->|"1. Extract Key (IP/User)"| B{Rate Limit Check}
+    B -->|"2. Under Limit"| C[Process Request]
+    B -->|"3. Over Limit"| D[Rate Limited]
+    D -->|"4. 429 Response"| E[Client]
     
     subgraph Rate Limit Store
     F[(Redis)]
     end
     
-    B ---|Read/Write| F
+    B ---|"5. Increment Counter"| F
+    B ---|"6. Get Counter"| F
+    
+    subgraph Rate Limit Config
+    G[Window: 60s]
+    H[Max: 100 req]
+    I[Burst: 20]
+    end
 ```
 
 - **Rate Limit Configuration**
@@ -533,12 +551,16 @@ graph TD
 stateDiagram-v2
     [*] --> CONNECTING
     CONNECTING --> AUTHENTICATING: Connection Established
+    CONNECTING --> [*]: Connection Failed
     AUTHENTICATING --> AUTHENTICATED: Valid Token
     AUTHENTICATING --> CLOSED: Invalid Token
     AUTHENTICATED --> ACTIVE: Session Created
     ACTIVE --> INACTIVE: Idle Timeout
     INACTIVE --> ACTIVE: Activity Detected
     INACTIVE --> CLOSED: Max Idle Exceeded
+    ACTIVE --> RECONNECTING: Connection Lost
+    RECONNECTING --> ACTIVE: Reconnect Success
+    RECONNECTING --> CLOSED: Reconnect Failed
     ACTIVE --> CLOSED: Client Disconnect/Error
     CLOSED --> [*]
 ```
@@ -559,17 +581,24 @@ enum MessagePriority {
 #### Backpressure Handling
 ```mermaid
 graph TD
-    A[Client Message] -->|Enqueue| B{Queue Check}
-    B -->|Below Threshold| C[Process Message]
-    B -->|Above Threshold| D[Apply Backpressure]
-    D -->|Notify Client| E[Client]
-    D -->|Drop Low Priority| F[Drop Message]
+    A[Client Message] -->|"1. Enqueue"| B{Queue Check}
+    B -->|"2. Below Threshold"| C[Process Message]
+    B -->|"3. Above Threshold"| D[Apply Backpressure]
+    D -->|"4a. Notify Client"| E[Client: "Slow Down"]
+    D -->|"4b. Drop Low Priority"| F[Drop Message]
+    D -->|"4c. Backoff"| G[Delay Processing]
     
     subgraph Queue Metrics
-    G[Current Size]
-    H[Processing Rate]
-    I[Drop Rate]
+    H[Current Size: X/Y]
+    I[Processing Rate: Z/s]
+    J[Drop Rate: W/s]
+    K[Avg. Wait Time: T ms]
     end
+    
+    C -->|Update| H
+    C -->|Update| I
+    F -->|Update| J
+    C -->|Update| K
 ```
 
 ### Security Best Practices
