@@ -2,11 +2,15 @@
   "name": "petstore-typescript-mcp-ws",
   "version": "1.0.0",
   "description": "A robust WebSocket-based API for a pet store",
+  "type": "module",
   "main": "dist/index.js",
+  "exports": {
+    ".": "./dist/index.js"
+  },
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "dev": "node --loader ts-node/esm src/index.ts",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
@@ -41,7 +45,8 @@
     "socket.io-client": "^4.8.1",
     "uuid": "^11.1.0",
     "ws": "^8.0.0",
-    "zod": "^3.25.36"
+    "zod": "^3.25.36",
+    "zod-to-json-schema": "^3.24.5"
   },
   "devDependencies": {
     "@types/autocannon": "^7.12.7",
@@ -80,6 +85,5 @@
     "microservices"
   ],
   "author": "Your Name",
-  "license": "MIT",
-  "type": "module"
+  "license": "MIT"
 }
