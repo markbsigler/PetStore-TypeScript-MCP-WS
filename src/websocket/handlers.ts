@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRequest } from 'fastify';
 import { SocketStream } from '@fastify/websocket';
-import { wsLogger } from '../utils/logger.js';
-import { Pet } from '../models/Pet.js';
+import { wsLogger } from '../utils/logger.ts';
+import { Pet } from '../models/Pet.ts';
 import WebSocket from 'ws';
 
 interface WSMessage {

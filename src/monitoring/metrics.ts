@@ -134,16 +134,23 @@ export function updateConnectionMetrics(clients: Set<WebSocket>): void {
 }
 
 export function updateSystemMetrics(): void {
-  const loadAvg = loadavg();
-  systemLoadGauge.labels('1m').set(loadAvg[0]);
-  systemLoadGauge.labels('5m').set(loadAvg[1]);
-  systemLoadGauge.labels('15m').set(loadAvg[2]);
-
-  const memoryUsage = process.memoryUsage();
-  memoryUsageGauge.labels('heapTotal').set(memoryUsage.heapTotal);
-  memoryUsageGauge.labels('heapUsed').set(memoryUsage.heapUsed);
-  memoryUsageGauge.labels('rss').set(memoryUsage.rss);
-  memoryUsageGauge.labels('external').set(memoryUsage.external);
+  try {
+    const loadAvg = loadavg();
+    systemLoadGauge.labels('1m').set(loadAvg[0]);
+    systemLoadGauge.labels('5m').set(loadAvg[1]);
+    systemLoadGauge.labels('15m').set(loadAvg[2]);
+  } catch {
+    // ignore errors (e.g., loadavg not available)
+  }
+  try {
+    const memoryUsage = process.memoryUsage();
+    memoryUsageGauge.labels('heapTotal').set(memoryUsage.heapTotal);
+    memoryUsageGauge.labels('heapUsed').set(memoryUsage.heapUsed);
+    memoryUsageGauge.labels('rss').set(memoryUsage.rss);
+    memoryUsageGauge.labels('external').set(memoryUsage.external);
+  } catch {
+    // ignore errors (e.g., restricted environment)
+  }
 }
 
 // Start periodic system metrics collection

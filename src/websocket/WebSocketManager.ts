@@ -1,10 +1,10 @@
 import { randomUUID } from 'crypto';
 import { FastifyInstance } from 'fastify';
 import { WebSocket } from 'ws';
-import { RateLimiter } from './RateLimiter.js';
-import { HeartbeatMonitor, HeartbeatConfig } from './HeartbeatMonitor.js';
-import { MessageCompressor, CompressionConfig } from './MessageCompressor.js';
-import { ConnectionMetrics, ConnectionStats } from './ConnectionMetrics.js';
+import { RateLimiter } from './RateLimiter.ts';
+import { HeartbeatMonitor, HeartbeatConfig } from './HeartbeatMonitor.ts';
+import { MessageCompressor, CompressionConfig } from './MessageCompressor.ts';
+import { ConnectionMetrics, ConnectionStats } from './ConnectionMetrics.ts';
 import {
   WebSocketMessage,
   WebSocketMessageSchema,
@@ -13,7 +13,7 @@ import {
   NotificationMessage,
   WebSocketRequestHandler,
   WebSocketTimeoutError,
-} from '../types/websocket.js';
+} from '../types/websocket.ts';
 
 interface PendingRequest {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -227,11 +227,17 @@ export class WebSocketManager {
     let message: WebSocketMessage;
     try {
       const decompressed = await this.messageCompressor.decompress(normalized);
+      this.fastify.log.info({ raw: normalized.toString(), decompressed }, 'WS raw and decompressed message');
       this.metrics.onMessage(Buffer.byteLength(decompressed));
       const parsed = JSON.parse(decompressed);
+      this.fastify.log.info({ parsed }, 'WS parsed message');
       message = WebSocketMessageSchema.parse(parsed);
     } catch (error) {
       this.metrics.onError();
+      this.fastify.log.error({ error, data: normalized?.toString() }, 'WS message parse/validation error');
+      if (error instanceof Error && 'errors' in error) {
+        this.fastify.log.error({ zodErrors: error.errors }, 'Zod validation errors');
+      }
       await this.sendError(client.socket, 'Invalid message format');
       return;
     }

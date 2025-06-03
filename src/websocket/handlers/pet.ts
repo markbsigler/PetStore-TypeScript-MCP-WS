@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { WebSocketRequestHandler } from '../../types/websocket.js';
-import { PetSchema } from '../../models/Pet.js';
+import { WebSocketRequestHandler } from '../../types/websocket.ts';
+import { PetSchema } from '../../models/Pet.ts';
 
 // Request payload schemas
 const GetPetRequestSchema = z.object({

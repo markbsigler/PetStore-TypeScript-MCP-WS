@@ -1,7 +1,7 @@
 import { Server, Socket } from 'socket.io';
-import { config } from '../config/index.js';
-import { WebSocketEvents, WebSocketRooms } from '../types/index.js';
-import { wsLogger } from '../utils/logger.js';
+import { config } from '../config/index.ts';
+import { WebSocketEvents, WebSocketRooms } from '../types/index.ts';
+import { wsLogger } from '../utils/logger.ts';
 
 // Socket middleware for authentication
 const authenticateSocket = (socket: Socket, next: (err?: Error) => void): void => {
