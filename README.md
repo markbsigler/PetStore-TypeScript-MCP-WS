@@ -14,6 +14,7 @@ A robust WebSocket-based API implementation for a pet store, built with TypeScri
 - [Installation](#installation)
 - [Configuration](#configuration)
 - [API Documentation](#api-documentation)
+- [Architecture](#architecture)
 - [Authentication](#authentication)
 - [Monitoring and Metrics](#monitoring-and-metrics)
 - [Testing](#testing)
@@ -115,7 +116,48 @@ Get started with the Pet Store API in minutes:
    npm run dev
    ```
 
-4. Access the API documentation at `http://localhost:3000/documentation`
+4. For detailed API documentation, visit the interactive [Swagger UI](/documentation) after starting the server. The API documentation is also available as [OpenAPI 3.1 specification](API_DESCRIPTION.md).
+
+### Key Endpoints
+
+- **Authentication**: `POST /api/auth/login`
+- **Users**: `GET /api/users`
+- **Pets**: `GET /api/pets`
+- **Store**: `GET /api/orders`
+
+For WebSocket documentation, see the [API Description](API_DESCRIPTION.md#websocket-events).
+
+## Architecture
+
+For a detailed overview of the system architecture, components, and design decisions, see the [Architecture Documentation](ARCHITECTURE.md).
+
+Key aspects of the architecture include:
+
+- **Modular Design**: Plugin-based architecture for extensibility
+- **Real-time Updates**: WebSocket support for live data
+- **Scalability**: Designed for horizontal scaling
+- **Security**: JWT authentication, rate limiting, and input validation
+- **Monitoring**: Built-in metrics and logging
+
+### High-Level Architecture
+
+```mermaid
+graph TD
+    A[Client] -->|HTTP/WebSocket| B[API Gateway]
+    B --> C[Authentication]
+    B --> D[Request Validation]
+    B --> E[Rate Limiting]
+    C -->|JWT| F[Controllers]
+    D --> F
+    E --> F
+    F --> G[Services]
+    G --> H[Models]
+    G --> I[Redis Cache]
+    G --> J[Database]
+    K[WebSocket Manager] -->|Pub/Sub| L[Connected Clients]
+    M[Monitoring] -->|Metrics| N[Prometheus]
+    N --> O[Grafana Dashboard]
+```
 
 ## Prerequisites
 

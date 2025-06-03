@@ -13,3 +13,6 @@ dist/
 coverage/
 *.md
 *.json
+
+# Ignore dev.ts
+dev.ts
