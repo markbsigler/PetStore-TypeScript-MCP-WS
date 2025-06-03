@@ -705,12 +705,12 @@ enum MessagePriority {
 #### Backpressure Handling
 ```mermaid
 graph TD
-    A[Client Message] -->|"1. Enqueue"| B{Queue Check}
-    B -->|"2. Below Threshold"| C[Process Message]
-    B -->|"3. Above Threshold"| D[Apply Backpressure]
-    D -->|"4a. Notify Client"| E[Client: "Slow Down"]
-    D -->|"4b. Drop Low Priority"| F[Drop Message]
-    D -->|"4c. Backoff"| G[Delay Processing]
+    A[Client Message] -->|1. Enqueue| B{Queue Check}
+    B -->|2. Below Threshold| C[Process Message]
+    B -->|3. Above Threshold| D[Apply Backpressure]
+    D -->|4a. Notify| E[Client Slow Down]
+    D -->|4b. Drop| F[Drop Message]
+    D -->|4c. Backoff| G[Delay Processing]
     
     subgraph Queue Metrics
     H[Current Size: X/Y]
@@ -723,6 +723,9 @@ graph TD
     C -->|Update| I
     F -->|Update| J
     C -->|Update| K
+    
+    style D fill:#f9f,stroke:#333,stroke-width:2px
+    style B fill:#bbf,stroke:#333,stroke-width:2px
 ```
 
 ### Security Best Practices
