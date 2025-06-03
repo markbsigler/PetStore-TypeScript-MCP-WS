@@ -30,7 +30,9 @@ A robust WebSocket-based API implementation for a pet store, built with TypeScri
   - Message routing
 
 - **Security**
-  - Token-based authentication
+  - JWT-based authentication with session management
+  - Token-based authentication with configurable expiration
+  - Session tracking and management
   - IP-based rate limiting
   - Origin validation
   - Role-based authorization
@@ -103,10 +105,45 @@ npm run build
 
 ## Development
 
-Start the development server with hot reloading:
-```bash
-npm run dev
-```
+### Prerequisites
+- Node.js >= 18
+- npm >= 9
+- TypeScript 5.1.x (recommended for best compatibility)
+
+### Getting Started
+
+1. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+
+2. **Set up environment variables**:
+   ```bash
+   cp .env.example .env
+   # Edit .env as needed
+   ```
+
+3. **Start the development server** with hot reloading:
+   ```bash
+   npm run dev
+   ```
+   The server will be available at `http://localhost:3000`
+
+4. **Access API documentation** at `http://localhost:3000/documentation`
+
+### Available Scripts
+
+- `npm run dev` - Start development server with hot reload
+- `npm run build` - Build the application for production
+- `npm start` - Start the production server
+- `npm test` - Run tests
+- `npm run test:watch` - Run tests in watch mode
+- `npm run test:coverage` - Generate test coverage report
+- `npm run lint` - Run ESLint
+- `npm run format` - Format code with Prettier
+- `npm run docker:build` - Build Docker image
+- `npm run docker:up` - Start containers
+- `npm run docker:down` - Stop containers
 
 Run all tests:
 ```bash
@@ -184,16 +221,101 @@ npm run docker:down
 - `GET /store/inventory` - Get store inventory
 
 #### User Endpoints
-- `POST /user` - Create user
-- `GET /user/:username` - Get user by username
-- `PUT /user/:username` - Update user
-- `DELETE /user/:username` - Delete user
-- `POST /user/login` - Logs user into the system
-- `GET /user/logout` - Logs out current logged-in user session
+- `POST /api/v1/users` - Create a new user (no authentication required)
+  ```json
+  {
+    "username": "testuser",
+    "password": "password123",
+    "email": "test@example.com",
+    "firstName": "Test",
+    "lastName": "User",
+    "phone": "123-456-7890",
+    "userStatus": 1
+  }
+  ```
 
-## Monitoring
+- `GET /api/v1/users/:username` - Get user by username (requires authentication)
+- `PUT /api/v1/users/:username` - Update user (requires authentication)
+- `DELETE /api/v1/users/:username` - Delete user (requires authentication)
+- `GET /api/v1/users/login` - Logs user into the system
+  ```
+  GET /api/v1/users/login?username=testuser&password=password123
+  ```
+  Returns:
+  ```json
+  {
+    "token": "eyJhbGciOiJIUzI1NiIs...",
+    "expiresAfter": "2025-06-03T23:32:16.102Z"
+  }
+  ```
 
-The application exposes metrics at `/metrics` for Prometheus to scrape. Grafana dashboards are available at port 3000.
+- `GET /api/v1/users/logout` - Logs out current logged-in user session (requires authentication)
+  ```
+  GET /api/v1/users/logout
+  Authorization: Bearer <token>
+  ```
+
+## Authentication
+
+The API uses JWT (JSON Web Tokens) for authentication. Here's how to use it:
+
+1. **Register a new user** (no token required):
+   ```
+   POST /api/v1/users
+   ```
+
+2. **Log in** to get a JWT token:
+   ```
+   GET /api/v1/users/login?username=testuser&password=password123
+   ```
+
+3. **Use the token** for authenticated requests:
+   ```
+   Authorization: Bearer <your-jwt-token>
+   ```
+
+4. **Log out** when done (invalidates the current session):
+   ```
+   GET /api/v1/users/logout
+   Authorization: Bearer <your-jwt-token>
+   ```
+
+### Token Expiration
+- Tokens are valid for 1 hour by default
+- After logout, the token is invalidated on the server side
+- You'll need to log in again to get a new token after expiration or logout
+
+## Monitoring and Metrics
+
+The application provides comprehensive monitoring capabilities:
+
+### Metrics Endpoint
+- `/metrics` - Exposes Prometheus-compatible metrics including:
+  - Request counts and response times
+  - Authentication attempts and failures
+  - Active sessions and token usage
+  - System resource usage
+
+### Health Check
+- `/health` - Returns the health status of the application
+  ```json
+  {
+    "status": "ok",
+    "timestamp": "2025-06-03T18:35:27.000Z",
+    "uptime": 123.45
+  }
+  ```
+
+### Grafana Dashboards
+Grafana dashboards are available at port 3000 by default:
+- Username: admin
+- Password: admin
+
+Dashboards include:
+- API request rates and response times
+- Authentication and session metrics
+- System resource usage
+- Error rates and types
 
 Default Grafana credentials:
 - Username: admin
